@@ -26,6 +26,7 @@
 
     body {
       min-height: 100vh;
+      min-height: 100dvh;
       margin: 0;
       color: var(--ink);
       background: #f7f8f6;
@@ -511,15 +512,24 @@
     }
 
     @media (max-width: 620px) {
+      body {
+        padding: 10px;
+      }
+
+      .trainer {
+        gap: 10px;
+      }
+
       .top-controls {
-        width: min(100%, 360px);
-        grid-template-columns: 66px minmax(140px, 1fr) 66px;
+        width: min(100%, 340px);
+        grid-template-columns: 62px minmax(132px, 1fr) 62px;
         gap: 4px;
       }
 
       .top-button {
         padding: 0 8px;
-        min-height: 48px;
+        min-height: 44px;
+        font-size: 14px;
       }
 
       .settings-button {
@@ -527,11 +537,67 @@
       }
 
       .timer-card {
-        min-height: 76px;
+        min-width: 0;
+        min-height: 68px;
+        gap: 4px;
+      }
+
+      .clock-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .time-value {
+        font-size: clamp(26px, 8vw, 38px);
+      }
+
+      .bottom-actions {
+        width: min(100%, 340px);
+        gap: 8px;
       }
 
       .bottom-actions button {
-        min-height: 58px;
+        min-height: 52px;
+        font-size: 15px;
+      }
+
+      .result {
+        width: 100%;
+        padding: 14px;
+        gap: 12px;
+      }
+
+      .result-time {
+        font-size: clamp(40px, 12vw, 58px);
+      }
+
+      .stat-box {
+        min-height: 72px;
+        padding: 10px;
+      }
+
+      .modal {
+        padding: 10px;
+      }
+
+      .modal-panel {
+        padding: 16px;
+        gap: 14px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .top-controls {
+        width: 100%;
+        grid-template-columns: 56px minmax(124px, 1fr) 56px;
+      }
+
+      .top-button {
+        padding: 0 6px;
+      }
+
+      .bottom-actions {
+        width: 100%;
       }
     }
   </style>
@@ -1221,8 +1287,8 @@
 
     function updateBoardRenderSize() {
       const desired = Number(sizeRange.value);
-      const available = Math.max(300, trainer.clientWidth);
-      const renderSize = Math.max(300, Math.floor(Math.min(desired, available) / 5) * 5);
+      const available = Math.max(240, trainer.clientWidth);
+      const renderSize = Math.max(240, Math.floor(Math.min(desired, available) / 5) * 5);
       const cellSize = renderSize / 5;
       document.documentElement.style.setProperty("--board-render-size", `${renderSize}px`);
       document.documentElement.style.setProperty("--grid-cell-size", `${cellSize}px`);
