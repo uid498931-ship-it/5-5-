@@ -1,2 +1,1397 @@
 # 5-5-
 规格为5×5，有三种模式可选。
+[index.html](https://github.com/user-attachments/files/28509402/index.html)
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>舒尔特表格</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172027;
+      --muted: #65717a;
+      --line: rgba(23, 32, 39, 0.14);
+      --panel: rgba(255, 252, 246, 0.92);
+      --shadow: 0 26px 70px rgba(31, 40, 46, 0.18);
+      --radius: 8px;
+      --board-size: 600px;
+      --board-render-size: 600px;
+      --grid-cell-size: 120px;
+      --cell-font: 60px;
+      font-family: "Trebuchet MS", "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background: #f7f8f6;
+      display: grid;
+      place-items: start center;
+      padding: clamp(14px, 3.5vw, 36px);
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(23, 32, 39, 0.18);
+      border-radius: var(--radius);
+      padding: 0 18px;
+      min-height: 48px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 160ms ease, filter 160ms ease;
+      user-select: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .trainer {
+      width: min(100%, 920px);
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .top-controls {
+      width: min(100%, 420px);
+      display: grid;
+      grid-template-columns: 76px minmax(160px, 1fr) 76px;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .top-button {
+      min-height: 54px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink);
+    }
+
+    .settings-button {
+      background: #6c7076;
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.24);
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.24);
+    }
+
+    .timer-card {
+      width: 100%;
+      min-width: 178px;
+      justify-self: center;
+      min-height: 86px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 6px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .clock-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--muted);
+    }
+
+    .time-value {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(30px, 6vw, 52px);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .board-shell {
+      width: var(--board-render-size);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+
+    .board {
+      position: relative;
+      aspect-ratio: 1;
+      width: 100%;
+      overflow: hidden;
+      background: #0e1519;
+    }
+
+    .board.finished::after {
+      opacity: 1;
+    }
+
+    .board::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      background: rgba(0, 0, 0, 0.72);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 240ms ease;
+    }
+
+    .cell {
+      isolation: isolate;
+      position: absolute;
+      left: calc(var(--x) * var(--grid-cell-size));
+      top: calc(var(--y) * var(--grid-cell-size));
+      width: calc(var(--grid-cell-size) + 1px);
+      height: calc(var(--grid-cell-size) + 1px);
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      place-items: center;
+      font-size: clamp(22px, min(var(--cell-font), 12vw), 72px);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+      text-shadow: none;
+      touch-action: manipulation;
+      outline: none;
+      overflow: hidden;
+      transition: box-shadow 140ms ease, transform 180ms ease;
+    }
+
+    .cell:focus,
+    .cell:focus-visible {
+      outline: none;
+    }
+
+    .cell::before,
+    .cell::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .cell::before {
+      z-index: 3;
+      width: 56%;
+      aspect-ratio: 1;
+      border: 5px solid rgba(255, 249, 191, 0.96);
+      border-radius: 50%;
+    }
+
+    .cell::after {
+      inset: 0;
+      z-index: 2;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .cell:hover {
+      z-index: 4;
+      box-shadow: inset 0 0 0 4px var(--hover-ring), inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+      transform: none;
+    }
+
+    .cell.done {
+      pointer-events: none;
+    }
+
+    .cell.done::after {
+      opacity: 1;
+    }
+
+    .cell.next::before,
+    .cell.hint-flash::before {
+      opacity: 1;
+      animation: hintPulse 720ms ease-out;
+    }
+
+    .cell.miss {
+      animation: wrongShake 260ms cubic-bezier(.36, .07, .19, .97);
+      box-shadow: inset 0 0 0 5px rgba(255, 92, 92, 0.84), inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+    }
+
+    .finished .cell {
+      pointer-events: none;
+    }
+
+    .bottom-actions {
+      width: min(100%, 440px);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .bottom-actions button {
+      min-height: 64px;
+      color: #fff;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.22);
+    }
+
+    .restart-button {
+      background: #c73636;
+    }
+
+    .hint-button {
+      background: #172027;
+      color: #fff;
+    }
+
+    .result {
+      width: min(100%, 620px);
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .result[hidden] {
+      display: none;
+    }
+
+    .result-main {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+
+    .result-title {
+      margin: 0;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .rank-name {
+      font-weight: 900;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .result-time {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(44px, 9vw, 76px);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      min-height: 82px;
+      padding: 12px;
+      display: grid;
+      align-content: center;
+      gap: 6px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .split-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .split-table th,
+    .split-table td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid rgba(23, 32, 39, 0.1);
+    }
+
+    .split-table thead tr,
+    .split-table tbody tr:nth-child(even) {
+      background: rgba(23, 32, 39, 0.07);
+    }
+
+    .split-table .wrong-entry {
+      color: #c73636;
+      font-weight: 900;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(23, 32, 39, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal[hidden] {
+      display: none;
+    }
+
+    .modal-panel {
+      width: min(100%, 540px);
+      max-height: min(86vh, 760px);
+      overflow: auto;
+      padding: 20px;
+      display: grid;
+      gap: 18px;
+      background: rgba(255, 252, 246, 0.97);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .icon-button {
+      width: 42px;
+      min-height: 42px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      background: #172027;
+      color: #fff;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mode-button {
+      min-height: 42px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--ink);
+    }
+
+    .mode-button.active {
+      background: #172027;
+      color: #fff;
+    }
+
+    .shortcut-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 1fr minmax(110px, 150px);
+      align-items: center;
+      gap: 12px;
+    }
+
+    .shortcut-button {
+      min-height: 42px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--ink);
+    }
+
+    .shortcut-button.recording {
+      background: #172027;
+      color: #fff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #172027;
+    }
+
+    .info-copy {
+      color: #26313a;
+      line-height: 1.75;
+      font-size: 15px;
+    }
+
+    .info-copy p {
+      margin: 0 0 14px;
+    }
+
+    .info-heading {
+      margin: 18px 0 8px;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .rank-table,
+    .mode-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rank-table th,
+    .rank-table td,
+    .mode-table th,
+    .mode-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(23, 32, 39, 0.1);
+      text-align: center;
+    }
+
+    .rank-table thead,
+    .rank-table tbody tr:nth-child(even),
+    .mode-table thead,
+    .mode-table tbody tr:nth-child(even) {
+      background: rgba(23, 32, 39, 0.07);
+    }
+
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      18% { transform: translateX(-7px); }
+      36% { transform: translateX(6px); }
+      54% { transform: translateX(-4px); }
+      72% { transform: translateX(3px); }
+    }
+
+    @keyframes hintPulse {
+      0% { transform: scale(0.72); }
+      35% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 620px) {
+      .top-controls {
+        width: min(100%, 360px);
+        grid-template-columns: 66px minmax(140px, 1fr) 66px;
+        gap: 4px;
+      }
+
+      .top-button {
+        padding: 0 8px;
+        min-height: 48px;
+      }
+
+      .settings-button {
+        min-height: 46px;
+      }
+
+      .timer-card {
+        min-height: 76px;
+      }
+
+      .bottom-actions button {
+        min-height: 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="trainer">
+    <div class="top-controls" aria-label="顶部控制">
+      <button id="infoToggle" class="top-button" type="button">说明</button>
+      <section class="timer-card" aria-label="计时器">
+        <svg class="clock-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle>
+          <path d="M12 9v5l3 2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          <path d="M9 2h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
+        </svg>
+        <div class="time-value" id="time">00.000</div>
+      </section>
+      <button id="settingsToggle" class="top-button settings-button" type="button" aria-keyshortcuts="Escape">设置</button>
+    </div>
+
+    <section class="board-shell" aria-label="5乘5舒尔特表">
+      <div class="board" id="board"></div>
+    </section>
+
+    <div class="bottom-actions">
+      <button id="restart" class="restart-button" type="button" aria-keyshortcuts="Space">刷新</button>
+      <button id="peek" class="hint-button" type="button" aria-keyshortcuts="Shift">提示</button>
+    </div>
+
+    <section class="result" id="resultPanel" hidden aria-live="polite">
+      <p class="result-title" id="resultTitle">测试结果</p>
+      <div class="result-main">
+        <div class="result-time" id="resultTime">00.000s</div>
+      </div>
+      <div class="result-stats">
+        <div class="stat-box">
+          <span class="result-label">错误次数</span>
+          <span class="stat-value" id="errorCount">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="result-label">历史最佳</span>
+          <span class="stat-value" id="bestTime">--</span>
+        </div>
+      </div>
+      <table class="split-table" aria-label="每个数字对应花费的时间">
+        <thead>
+          <tr>
+            <th>数字</th>
+            <th>时间</th>
+          </tr>
+        </thead>
+        <tbody id="splitRows"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div class="modal" id="settingsPanel" hidden>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <p class="modal-title" id="settingsTitle">设置</p>
+        <button class="icon-button" id="settingsClose" type="button" aria-label="关闭设置">×</button>
+      </div>
+
+      <div class="field">
+        <span class="field-row">
+          <span>模式</span>
+        </span>
+        <div class="mode-grid">
+          <button class="mode-button" type="button" data-mode="intro">入门</button>
+          <button class="mode-button" type="button" data-mode="simple">简单</button>
+          <button class="mode-button" type="button" data-mode="normal">一般</button>
+        </div>
+      </div>
+
+      <label class="field" for="sizeRange">
+        <span class="field-row">
+          <span>格子</span>
+          <span id="sizeValue">600</span>
+        </span>
+        <input id="sizeRange" type="range" min="400" max="800" step="10" value="600">
+      </label>
+
+      <label class="field" for="volumeRange">
+        <span class="field-row">
+          <span>音效</span>
+          <span id="volumeValue">50%</span>
+        </span>
+        <input id="volumeRange" type="range" min="0" max="100" step="1" value="50">
+      </label>
+
+      <div class="field">
+        <span class="field-row">
+          <span>快捷键</span>
+        </span>
+        <div class="shortcut-grid">
+          <div class="shortcut-row">
+            <span>点击</span>
+            <button class="shortcut-button" id="clickShortcut" type="button" data-action="cellClick">鼠标左键</button>
+          </div>
+          <div class="shortcut-row">
+            <span>刷新</span>
+            <button class="shortcut-button" id="refreshShortcut" type="button" data-action="refresh">空格</button>
+          </div>
+          <div class="shortcut-row">
+            <span>提示</span>
+            <button class="shortcut-button" id="hintShortcut" type="button" data-action="hint">Shift</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="infoPanel" hidden>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+      <div class="modal-head">
+        <p class="modal-title" id="infoTitle">说明</p>
+        <button class="icon-button" id="infoClose" type="button" aria-label="关闭说明">×</button>
+      </div>
+      <div class="info-copy">
+        <p>舒尔特表格是一种注意力和视觉搜索训练工具，通常由正方形表格组成，格子中随机排列数字、字母或符号。最典型形式为 5×5 数字表格，数字 1 到 25 随机排列，训练者需按顺序快速找到并指出或读出。主要训练注意力集中、视觉搜索、视野广度、眼动协调、反应速度、信息处理、速读辅助等能力。</p>
+        <div class="info-heading">模式说明</div>
+        <table class="mode-table">
+          <thead>
+            <tr>
+              <th>难度</th>
+              <th>格子背景</th>
+              <th>变暗时效</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>入门</td><td>白色</td><td>永久</td></tr>
+            <tr><td>简单</td><td>白色</td><td>短暂</td></tr>
+            <tr><td>一般</td><td>彩色</td><td>短暂</td></tr>
+          </tbody>
+        </table>
+        <div class="info-heading">基本训练方法</div>
+        <p>将表格置于眼前 30–50 厘米处。<br>视线固定表格中心，使用余光查找目标数字。<br>按顺序从 1 查找到最大数字，可用手指点读、眼睛默找或口头报数。<br>每次训练 5–10 分钟，避免眼疲劳，持续练习可观察完成时间下降趋势作为进步指标。</p>
+        <div class="info-heading">水平参考</div>
+        <table class="rank-table">
+          <thead>
+            <tr>
+              <th>段位</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>坚韧黑铁</td><td>＞45s</td></tr>
+            <tr><td>英勇黄铜</td><td>40~45s</td></tr>
+            <tr><td>不屈白银</td><td>35~40s</td></tr>
+            <tr><td>荣耀黄金</td><td>30~35s</td></tr>
+            <tr><td>华贵铂金</td><td>25~30s</td></tr>
+            <tr><td>流光翡翠</td><td>20~25s</td></tr>
+            <tr><td>璀璨钻石</td><td>15~20s</td></tr>
+            <tr><td>超凡大师</td><td>10~15s</td></tr>
+            <tr><td>傲世宗师</td><td>5~10s</td></tr>
+            <tr><td>最强王者</td><td>＜5s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const board = document.querySelector("#board");
+    const trainer = document.querySelector(".trainer");
+    const timeEl = document.querySelector("#time");
+    const restartBtn = document.querySelector("#restart");
+    const peekBtn = document.querySelector("#peek");
+    const settingsToggleBtn = document.querySelector("#settingsToggle");
+    const settingsPanel = document.querySelector("#settingsPanel");
+    const settingsCloseBtn = document.querySelector("#settingsClose");
+    const infoToggleBtn = document.querySelector("#infoToggle");
+    const infoPanel = document.querySelector("#infoPanel");
+    const infoCloseBtn = document.querySelector("#infoClose");
+    const sizeRange = document.querySelector("#sizeRange");
+    const sizeValue = document.querySelector("#sizeValue");
+    const volumeRange = document.querySelector("#volumeRange");
+    const volumeValue = document.querySelector("#volumeValue");
+    const shortcutButtons = document.querySelectorAll(".shortcut-button");
+    const modeButtons = document.querySelectorAll(".mode-button");
+    const resultPanel = document.querySelector("#resultPanel");
+    const resultTitleEl = document.querySelector("#resultTitle");
+    const resultTimeEl = document.querySelector("#resultTime");
+    const errorCountEl = document.querySelector("#errorCount");
+    const bestTimeEl = document.querySelector("#bestTime");
+    const splitRows = document.querySelector("#splitRows");
+
+    const colors = [
+      "#8f2f24", "#135f8c", "#8a6517", "#176f5b", "#653070",
+      "#93491d", "#285c30", "#243f8f", "#91305d", "#4f6425",
+      "#7c3227", "#16717d", "#98591f", "#51418b", "#87303b",
+      "#356675", "#6f531d", "#8b386b", "#3b5fa8", "#246b43",
+      "#9b4835", "#665026", "#843e25", "#315d78", "#7a5c8d"
+    ];
+
+    const bestKey = "schulte-best-ms-v2";
+    const sizeKey = "schulte-board-size-v1";
+    const volumeKey = "schulte-volume-v1";
+    const shortcutKey = "schulte-shortcuts-v1";
+    const modeKey = "schulte-mode-v1";
+    const ranks = [
+      { name: "最强王者", max: 5, color: "#48c5ff" },
+      { name: "傲世宗师", max: 10, color: "#f15b4f" },
+      { name: "超凡大师", max: 15, color: "#d84bef" },
+      { name: "璀璨钻石", max: 20, color: "#6f8dff" },
+      { name: "流光翡翠", max: 25, color: "#36b979" },
+      { name: "华贵铂金", max: 30, color: "#25a99e" },
+      { name: "荣耀黄金", max: 35, color: "#d6a143" },
+      { name: "不屈白银", max: 40, color: "#9fb2c4" },
+      { name: "英勇黄铜", max: 45, color: "#b87756" },
+      { name: "坚韧黑铁", max: Infinity, color: "#626271" }
+    ];
+    let nextNumber = 1;
+    let startTime = 0;
+    let timerId = 0;
+    let elapsed = 0;
+    let audioContext = null;
+    let hintTimer = 0;
+    let soundVolume = Number(volumeRange.value) / 100;
+    let lastCorrectCell = null;
+    let lastSplitMs = 0;
+    let splitTimes = [];
+    let errorCount = 0;
+    let activeCell = null;
+    let recordingAction = null;
+    let currentMode = "normal";
+    const defaultShortcuts = {
+      cellClick: { type: "mouse", button: 0, label: "鼠标左键" },
+      refresh: { type: "key", code: "Space", key: " ", label: "空格" },
+      hint: { type: "key", code: "ShiftLeft", key: "Shift", label: "Shift" }
+    };
+    let shortcuts = {
+      ...defaultShortcuts
+    };
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function hexToRgb(hex) {
+      return [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16));
+    }
+
+    function rgbToHsl([r, g, b]) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const lightness = (max + min) / 2;
+      const delta = max - min;
+
+      if (delta === 0) {
+        return [0, 0, lightness * 100];
+      }
+
+      const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+      let hue = 0;
+      if (max === r) hue = ((g - b) / delta) % 6;
+      if (max === g) hue = (b - r) / delta + 2;
+      if (max === b) hue = (r - g) / delta + 4;
+
+      return [Math.round((hue * 60 + 360) % 360), saturation * 100, lightness * 100];
+    }
+
+    function hslToRgb(hue, saturation, lightness) {
+      const s = saturation / 100;
+      const l = lightness / 100;
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+      const m = l - c / 2;
+      const bands = [
+        [c, x, 0],
+        [x, c, 0],
+        [0, c, x],
+        [0, x, c],
+        [x, 0, c],
+        [c, 0, x]
+      ];
+      return bands[Math.floor(hue / 60) % 6].map((channel) => Math.round((channel + m) * 255));
+    }
+
+    function rgbToCss([r, g, b]) {
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function relativeLuminance(rgb) {
+      const channels = rgb.map((channel) => {
+        const value = channel / 255;
+        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    }
+
+    function contrastRatio(a, b) {
+      const light = Math.max(relativeLuminance(a), relativeLuminance(b));
+      const dark = Math.min(relativeLuminance(a), relativeLuminance(b));
+      return (light + 0.05) / (dark + 0.05);
+    }
+
+    function readableTextColor(hex) {
+      const background = hexToRgb(hex);
+      const [hue, saturation] = rgbToHsl(background);
+      const textHue = (hue + 24) % 360;
+      const textSaturation = Math.min(78, Math.max(38, saturation + 8));
+      return rgbToCss(hslToRgb(textHue, textSaturation, 92));
+    }
+
+    function hoverRingColor(hex) {
+      const [hue, saturation] = rgbToHsl(hexToRgb(hex));
+      return rgbToCss(hslToRgb(hue, Math.min(88, saturation + 12), 72));
+    }
+
+    function formatTime(ms, digits = 3) {
+      return (ms / 1000).toFixed(digits).padStart(digits + 3, "0");
+    }
+
+    function mouseButtonLabel(button) {
+      return ["鼠标左键", "鼠标中键", "鼠标右键", "鼠标后退键", "鼠标前进键"][button] || `鼠标键 ${button}`;
+    }
+
+    function keyLabel(event) {
+      if (event.code === "Space") return "空格";
+      if (event.key === "Shift") return "Shift";
+      if (event.key === "Control") return "Ctrl";
+      if (event.key === "Alt") return "Alt";
+      if (event.key === "Meta") return "Meta";
+      if (event.key.length === 1) return event.key.toUpperCase();
+      return event.key;
+    }
+
+    function shortcutMatchesKey(shortcut, event) {
+      if (shortcut.type !== "key") return false;
+      if (shortcut.key === "Shift") return event.key === "Shift";
+      return shortcut.code === event.code;
+    }
+
+    function shortcutMatchesMouse(shortcut, event) {
+      return shortcut.type === "mouse" && shortcut.button === event.button;
+    }
+
+    function shortcutId(shortcut) {
+      if (shortcut.type === "mouse") return `mouse:${shortcut.button}`;
+      if (shortcut.key === "Shift") return "key:Shift";
+      return `key:${shortcut.code}`;
+    }
+
+    function findShortcutOwner(shortcut, exceptAction) {
+      const id = shortcutId(shortcut);
+      return Object.keys(shortcuts).find((action) => (
+        action !== exceptAction && shortcutId(shortcuts[action]) === id
+      ));
+    }
+
+    function renderShortcutButtons() {
+      shortcutButtons.forEach((button) => {
+        button.textContent = shortcuts[button.dataset.action].label;
+      });
+    }
+
+    function saveShortcuts() {
+      localStorage.setItem(shortcutKey, JSON.stringify(shortcuts));
+    }
+
+    function loadShortcuts() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(shortcutKey) || "null");
+        if (saved) {
+          shortcuts = { ...shortcuts, ...saved };
+        }
+      } catch {
+        localStorage.removeItem(shortcutKey);
+      }
+      const seen = new Set();
+      Object.keys(shortcuts).forEach((action) => {
+        const id = shortcutId(shortcuts[action]);
+        if (seen.has(id)) {
+          shortcuts[action] = defaultShortcuts[action];
+        }
+        seen.add(shortcutId(shortcuts[action]));
+      });
+      saveShortcuts();
+      renderShortcutButtons();
+    }
+
+    function startShortcutRecording(action) {
+      recordingAction = action;
+      shortcutButtons.forEach((button) => {
+        button.classList.toggle("recording", button.dataset.action === action);
+        button.textContent = button.dataset.action === action ? "请按键/鼠标" : shortcuts[button.dataset.action].label;
+      });
+    }
+
+    function stopShortcutRecording() {
+      recordingAction = null;
+      shortcutButtons.forEach((button) => button.classList.remove("recording"));
+      renderShortcutButtons();
+    }
+
+    function setShortcut(action, shortcut) {
+      const owner = findShortcutOwner(shortcut, action);
+      if (owner) {
+        shortcuts[owner] = shortcuts[action];
+      }
+      shortcuts[action] = shortcut;
+      saveShortcuts();
+      stopShortcutRecording();
+    }
+
+    function tick() {
+      elapsed = performance.now() - startTime;
+      timeEl.textContent = formatTime(elapsed, 3);
+      timerId = requestAnimationFrame(tick);
+    }
+
+    function startTimer() {
+      if (timerId) return;
+      startTime = performance.now() - elapsed;
+      timerId = requestAnimationFrame(tick);
+    }
+
+    function stopTimer() {
+      cancelAnimationFrame(timerId);
+      timerId = 0;
+    }
+
+    function clearHint() {
+      clearTimeout(hintTimer);
+      document.querySelectorAll(".cell").forEach((cell) => {
+        cell.classList.remove("next", "hint-flash");
+      });
+    }
+
+    function showNextHint() {
+      clearHint();
+      const nextCell = document.querySelector(`.cell[data-number="${nextNumber}"]`);
+      if (!nextCell || nextCell.classList.contains("done")) return;
+      nextCell.classList.add("next", "hint-flash");
+    }
+
+    function getAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playTone({ base, peak, length, type = "triangle", volume = 0.16 }) {
+      if (soundVolume <= 0) return;
+      const context = getAudioContext();
+      const now = context.currentTime;
+      const output = context.createGain();
+      const tone = context.createOscillator();
+
+      output.gain.setValueAtTime(0.0001, now);
+      output.gain.exponentialRampToValueAtTime(Math.min(0.5, volume * soundVolume * 1.55), now + 0.012);
+      output.gain.exponentialRampToValueAtTime(0.0001, now + length);
+      output.connect(context.destination);
+
+      tone.type = type;
+      tone.frequency.setValueAtTime(base, now);
+      tone.frequency.exponentialRampToValueAtTime(peak, now + length * 0.72);
+      tone.connect(output);
+      tone.start(now);
+      tone.stop(now + length + 0.02);
+    }
+
+    function playConfirmSound(isFinish = false) {
+      playTone({
+        base: isFinish ? 740 : 620,
+        peak: isFinish ? 1180 : 920,
+        length: isFinish ? 0.18 : 0.13,
+        type: "triangle",
+        volume: isFinish ? 0.25 : 0.22
+      });
+    }
+
+    function playHintSound() {
+      playTone({
+        base: 980,
+        peak: 1760,
+        length: 0.22,
+        type: "sine",
+        volume: 0.2
+      });
+    }
+
+    function playRestartSound() {
+      playTone({
+        base: 760,
+        peak: 260,
+        length: 0.2,
+        type: "sine",
+        volume: 0.2
+      });
+    }
+
+    function playFinishSound() {
+      playConfirmSound(true);
+      setTimeout(() => {
+        playTone({
+          base: 960,
+          peak: 1440,
+          length: 0.16,
+          type: "triangle",
+          volume: 0.22
+        });
+      }, 90);
+    }
+
+    function playWrongSound() {
+      playTone({
+        base: 230,
+        peak: 150,
+        length: 0.16,
+        type: "sawtooth",
+        volume: 0.18
+      });
+    }
+
+    function renderResults() {
+      const finalMs = elapsed;
+      const rank = getRank(finalMs);
+      const previousBest = Number(localStorage.getItem(bestKey) || 0);
+      const bestMs = previousBest && previousBest < finalMs ? previousBest : finalMs;
+      localStorage.setItem(bestKey, String(bestMs));
+
+      resultTitleEl.innerHTML = `测试结果：<span class="rank-name" style="color: ${rank.color}">${rank.name}</span>`;
+      resultTimeEl.textContent = `${formatTime(finalMs, 3)}s`;
+      errorCountEl.textContent = String(errorCount);
+      bestTimeEl.textContent = `${formatTime(bestMs, 3)}s`;
+      splitRows.innerHTML = "";
+
+      splitTimes.forEach(({ number, ms, wrong }) => {
+        const row = document.createElement("tr");
+        const numberCell = document.createElement("td");
+        const timeCell = document.createElement("td");
+        numberCell.textContent = number;
+        timeCell.textContent = `${formatTime(ms, 3)}s`;
+        if (wrong) {
+          numberCell.classList.add("wrong-entry");
+          timeCell.classList.add("wrong-entry");
+        }
+        row.append(numberCell, timeCell);
+        splitRows.append(row);
+      });
+
+      resultPanel.hidden = false;
+    }
+
+    function getRank(ms) {
+      const seconds = ms / 1000;
+      return ranks.find((rank) => seconds < rank.max);
+    }
+
+    function finishGame() {
+      stopTimer();
+      clearHint();
+      if (currentMode !== "intro" && lastCorrectCell) {
+        lastCorrectCell.classList.remove("done");
+      }
+      board.classList.add("finished");
+      timeEl.textContent = formatTime(elapsed, 3);
+      playFinishSound();
+      renderResults();
+    }
+
+    function activateCell(cell) {
+      if (!cell || board.classList.contains("finished")) return;
+      if (cell.classList.contains("done")) return;
+      const value = Number(cell.dataset.number);
+
+      if (value !== nextNumber) {
+        errorCount += 1;
+        splitTimes.push({ number: value, ms: elapsed - lastSplitMs, wrong: true });
+        playWrongSound();
+        cell.classList.remove("miss");
+        void cell.offsetWidth;
+        cell.classList.add("miss");
+        cell.addEventListener("animationend", () => {
+          cell.classList.remove("miss");
+        }, { once: true });
+        return;
+      }
+
+      clearHint();
+      if (currentMode !== "intro" && lastCorrectCell) {
+        lastCorrectCell.classList.remove("done");
+      }
+
+      const nowMs = elapsed;
+      splitTimes.push({ number: value, ms: nowMs - lastSplitMs });
+      lastSplitMs = nowMs;
+      cell.classList.add("done");
+      lastCorrectCell = cell;
+      nextNumber += 1;
+
+      if (nextNumber > 25) {
+        finishGame();
+        return;
+      }
+
+      playConfirmSound();
+    }
+
+    function handleCellMouseDown(event) {
+      if (!shortcutMatchesMouse(shortcuts.cellClick, event)) return;
+      event.preventDefault();
+      activateCell(event.currentTarget);
+    }
+
+    function buildBoard() {
+      const numbers = shuffle(Array.from({ length: 25 }, (_, index) => index + 1));
+      const palette = shuffle(colors);
+      board.innerHTML = "";
+      board.classList.remove("finished");
+
+      numbers.forEach((number, index) => {
+        const cell = document.createElement("button");
+        const bg = currentMode === "normal" ? palette[index] : "#ffffff";
+        const x = index % 5;
+        const y = Math.floor(index / 5);
+        cell.className = "cell";
+        cell.type = "button";
+        cell.dataset.number = number;
+        cell.style.setProperty("--x", x);
+        cell.style.setProperty("--y", y);
+        cell.style.backgroundColor = bg;
+        cell.style.color = currentMode === "normal" ? readableTextColor(bg) : "#111111";
+        cell.style.setProperty("--hover-ring", currentMode === "normal" ? hoverRingColor(bg) : "rgb(40, 40, 40)");
+        cell.textContent = number;
+        cell.setAttribute("aria-label", `数字 ${number}`);
+        cell.addEventListener("pointerenter", () => {
+          activeCell = cell;
+        });
+        cell.addEventListener("pointerleave", () => {
+          if (activeCell === cell) activeCell = null;
+        });
+        cell.addEventListener("focus", () => {
+          activeCell = cell;
+        });
+        cell.addEventListener("mousedown", handleCellMouseDown);
+        cell.addEventListener("contextmenu", (event) => {
+          if (shortcuts.cellClick.type === "mouse" && shortcuts.cellClick.button === 2) {
+            event.preventDefault();
+          }
+        });
+        board.append(cell);
+      });
+
+      clearHint();
+    }
+
+    function resetGame(withSound = false) {
+      if (withSound) {
+        playRestartSound();
+      }
+      stopTimer();
+      nextNumber = 1;
+      elapsed = 0;
+      lastSplitMs = 0;
+      splitTimes = [];
+      errorCount = 0;
+      lastCorrectCell = null;
+      activeCell = null;
+      clearHint();
+      timeEl.textContent = "00.000";
+      resultPanel.hidden = true;
+      splitRows.innerHTML = "";
+      buildBoard();
+      startTimer();
+    }
+
+    function setBoardSize(value) {
+      document.documentElement.style.setProperty("--board-size", `${value}px`);
+      sizeValue.textContent = value;
+      localStorage.setItem(sizeKey, String(value));
+      updateBoardRenderSize();
+    }
+
+    function updateBoardRenderSize() {
+      const desired = Number(sizeRange.value);
+      const available = Math.max(300, trainer.clientWidth);
+      const renderSize = Math.max(300, Math.floor(Math.min(desired, available) / 5) * 5);
+      const cellSize = renderSize / 5;
+      document.documentElement.style.setProperty("--board-render-size", `${renderSize}px`);
+      document.documentElement.style.setProperty("--grid-cell-size", `${cellSize}px`);
+      document.documentElement.style.setProperty("--cell-font", `${cellSize / 2}px`);
+    }
+
+    function setVolume(value) {
+      soundVolume = Number(value) / 100;
+      volumeValue.textContent = `${value}%`;
+      localStorage.setItem(volumeKey, String(value));
+    }
+
+    function renderModeButtons() {
+      modeButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.mode === currentMode);
+      });
+    }
+
+    function setMode(mode, shouldReset = true) {
+      currentMode = mode;
+      localStorage.setItem(modeKey, mode);
+      renderModeButtons();
+      if (shouldReset) {
+        resetGame();
+      }
+    }
+
+    function loadSettings() {
+      const savedSize = localStorage.getItem(sizeKey);
+      const savedVolume = localStorage.getItem(volumeKey);
+      const savedMode = localStorage.getItem(modeKey);
+      if (savedSize) {
+        const normalizedSize = savedSize === "580"
+          ? 600
+          : Math.min(Number(sizeRange.max), Math.max(Number(sizeRange.min), Number(savedSize)));
+        sizeRange.value = normalizedSize;
+      }
+      if (savedVolume) {
+        volumeRange.value = savedVolume;
+      }
+      if (["intro", "simple", "normal"].includes(savedMode)) {
+        currentMode = savedMode;
+      }
+    }
+
+    function toggleModal(panel, forceOpen, focusTarget) {
+      const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : panel.hidden;
+      panel.hidden = !shouldOpen;
+      if (shouldOpen && focusTarget) {
+        focusTarget.focus();
+      }
+    }
+
+    restartBtn.addEventListener("click", () => resetGame(true));
+    peekBtn.addEventListener("click", () => {
+      playHintSound();
+      showNextHint();
+    });
+    settingsToggleBtn.addEventListener("click", () => toggleModal(settingsPanel, undefined, sizeRange));
+    settingsCloseBtn.addEventListener("click", () => toggleModal(settingsPanel, false, settingsToggleBtn));
+    infoToggleBtn.addEventListener("click", () => toggleModal(infoPanel, undefined, infoCloseBtn));
+    infoCloseBtn.addEventListener("click", () => toggleModal(infoPanel, false, infoToggleBtn));
+    [settingsPanel, infoPanel].forEach((panel) => {
+      panel.addEventListener("click", (event) => {
+        if (event.target === panel) {
+          toggleModal(panel, false);
+        }
+      });
+    });
+    sizeRange.addEventListener("input", () => setBoardSize(sizeRange.value));
+    volumeRange.addEventListener("input", () => setVolume(volumeRange.value));
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+    window.addEventListener("resize", updateBoardRenderSize);
+    shortcutButtons.forEach((button) => {
+      button.addEventListener("click", () => startShortcutRecording(button.dataset.action));
+    });
+
+    document.addEventListener("mousedown", (event) => {
+      if (recordingAction) {
+        event.preventDefault();
+        setShortcut(recordingAction, {
+          type: "mouse",
+          button: event.button,
+          label: mouseButtonLabel(event.button)
+        });
+        return;
+      }
+
+      if (!settingsPanel.hidden || !infoPanel.hidden) return;
+      if (shortcutMatchesMouse(shortcuts.refresh, event)) {
+        event.preventDefault();
+        resetGame(true);
+        return;
+      }
+      if (shortcutMatchesMouse(shortcuts.hint, event)) {
+        event.preventDefault();
+        playHintSound();
+        showNextHint();
+      }
+    }, true);
+
+    document.addEventListener("contextmenu", (event) => {
+      const usesRightButton = Object.values(shortcuts).some((shortcut) => (
+        shortcut.type === "mouse" && shortcut.button === 2
+      ));
+      if (usesRightButton) {
+        event.preventDefault();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const isInput = event.target instanceof HTMLInputElement;
+
+      if (recordingAction) {
+        event.preventDefault();
+        if (event.code === "Escape") {
+          return;
+        }
+        setShortcut(recordingAction, {
+          type: "key",
+          code: event.code,
+          key: event.key,
+          label: keyLabel(event)
+        });
+        return;
+      }
+
+      if (event.code === "Escape") {
+        event.preventDefault();
+        if (!infoPanel.hidden) {
+          toggleModal(infoPanel, false, infoToggleBtn);
+          return;
+        }
+        toggleModal(settingsPanel, undefined, sizeRange);
+        return;
+      }
+
+      if (!settingsPanel.hidden || !infoPanel.hidden || isInput) return;
+
+      if (shortcutMatchesKey(shortcuts.refresh, event)) {
+        event.preventDefault();
+        resetGame(true);
+        return;
+      }
+
+      if (shortcutMatchesKey(shortcuts.hint, event)) {
+        event.preventDefault();
+        playHintSound();
+        showNextHint();
+        return;
+      }
+
+      if (shortcutMatchesKey(shortcuts.cellClick, event)) {
+        event.preventDefault();
+        activateCell(activeCell || document.activeElement.closest?.(".cell"));
+      }
+    });
+
+    loadSettings();
+    renderModeButtons();
+    loadShortcuts();
+    setBoardSize(sizeRange.value);
+    setVolume(volumeRange.value);
+    resetGame();
+  </script>
+</body>
+</html>
