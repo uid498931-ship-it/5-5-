@@ -1,5 +1,4 @@
-# 5-5-
-规格为5×5，有三种模式可选。
+# 5×5 舒尔特表格
 [index.html](https://github.com/user-attachments/files/28509402/index.html)
 <!doctype html>
 <html lang="zh-CN">
