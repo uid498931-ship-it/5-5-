@@ -2188,8 +2188,16 @@
       return rankPower(rank) * 10000 + rank.score;
     }
 
-    function storedRankPower(rank) {
-      return Math.floor(rank.totalPoints / 10000);
+    function rankMajorPower(rank) {
+      if (rank.masterIndex !== undefined) {
+        return divisionRanks.length + (masterRanks.length - 1 - rank.masterIndex);
+      }
+      if (rank.divisionRankIndex !== undefined) {
+        return divisionRanks.length - 1 - rank.divisionRankIndex;
+      }
+      const tier = getRankTierName(rank);
+      const tiers = ["黑铁", "黄铜", "白银", "黄金", "铂金", "翡翠", "钻石", "大师", "宗师", "王者"];
+      return Math.max(0, tiers.indexOf(tier));
     }
 
     function rankContinuousPoints(rank) {
@@ -2267,7 +2275,7 @@
       saveRankHistory(mode, after);
       const rank = getRank(averageMs(after), mode);
       const reachedNewHigh = !previousHigh || rankTotalPoints(rank) > previousHigh.totalPoints;
-      const reachedHigherTier = Boolean(previousHigh && rankPower(rank) > storedRankPower(previousHigh));
+      const reachedHigherMajor = Boolean(previousHigh && rankMajorPower(rank) > rankMajorPower(previousHigh));
       const countedGames = after.length;
       if (countedGames >= 5) {
         saveHistoryHighRank(rank, mode);
@@ -2278,7 +2286,7 @@
         placementPrefix: countedGames >= 1 && countedGames <= 4 ? `（定级赛${countedGames}/5）` : "",
         inPlacementPreview: countedGames >= 1 && countedGames <= 4,
         placementCompleted: before.length === 4,
-        promoted: Boolean(previousRank && reachedNewHigh && reachedHigherTier),
+        promoted: Boolean(previousRank && reachedNewHigh && reachedHigherMajor),
         pointDelta: visiblePointDelta(rank, previousRank)
       };
     }
@@ -2319,7 +2327,7 @@
       rankStatusEl.innerHTML = usedHint || rankEvent?.placementCompleted || rankEvent?.inPlacementPreview
         ? `<span class="empty-value">暂无</span>`
         : pointChangeHtml(rankEvent?.pointDelta);
-      timeLabel.textContent = "最终用时";
+      timeLabel.textContent = "总共用时";
       historyHighEl.innerHTML = rankEvent && rankEvent.countedGames <= 4 ? `<span class="empty-value">暂无</span>` : historyHighHtml();
       bestTimeEl.innerHTML = bestMs ? formatSecondsLabel(bestMs) : `<span class="empty-value">暂无</span>`;
       splitTable.hidden = false;
