@@ -1609,7 +1609,7 @@
     const visibilityKey = "schulte-action-visibility-v1";
     const shortcutKey = "schulte-shortcuts-v1";
     const modeKey = "schulte-mode-v1";
-    const shareUrl = "https://uid498931-ship-it.github.io/5-5-/";
+    const shareUrl = "https://uid498931-ship-it.github.io/Schulte-Grid/";
     const modeLabels = {
       intro: "入门",
       simple: "简单",
@@ -2155,6 +2155,11 @@
     }
 
     function getHistoryHighRank(mode = currentMode) {
+      const history = getRankHistory(mode);
+      if (history.length < 5) {
+        localStorage.removeItem(getRankHighKey(mode));
+        return null;
+      }
       try {
         const saved = JSON.parse(localStorage.getItem(getRankHighKey(mode)) || "null");
         if (saved?.name && Number.isFinite(saved.score) && Number.isFinite(saved.totalPoints)) {
@@ -2163,8 +2168,7 @@
       } catch {
         localStorage.removeItem(getRankHighKey(mode));
       }
-      const history = getRankHistory(mode);
-      return history.length >= 5 ? normalizeRankForStorage(getRank(averageMs(history), mode)) : null;
+      return normalizeRankForStorage(getRank(averageMs(history), mode));
     }
 
     function averageMs(history) {
@@ -2257,14 +2261,16 @@
     function recordRankResult(ms, mode = currentMode) {
       const before = getRankHistory(mode);
       const previousRank = before.length >= 5 ? getRank(averageMs(before), mode) : null;
-      const previousHigh = getHistoryHighRank(mode);
+      const previousHigh = before.length >= 5 ? getHistoryHighRank(mode) : null;
       const after = [...before, ms].slice(-20);
       saveRankHistory(mode, after);
       const rank = getRank(averageMs(after), mode);
       const reachedNewHigh = !previousHigh || rankTotalPoints(rank) > previousHigh.totalPoints;
       const reachedHigherTier = Boolean(previousHigh && rankPower(rank) > storedRankPower(previousHigh));
-      saveHistoryHighRank(rank, mode);
       const countedGames = after.length;
+      if (countedGames >= 5) {
+        saveHistoryHighRank(rank, mode);
+      }
       return {
         rank,
         countedGames,
@@ -2744,10 +2750,20 @@
         drawCenteredPlainText(ctx, "暂无", x + width / 2, y, "800 20px 'Microsoft YaHei', sans-serif", "#aab2b8");
         return;
       }
+      if (rank.placeholder) {
+        drawCenteredPlainText(ctx, rank.text, x + width / 2, y, "800 20px 'Microsoft YaHei', sans-serif", "#aab2b8");
+        return;
+      }
       drawFittedCenteredSegments(ctx, [
         { text: `${rank.name} `, color: rank.color, size: 20, weight: 900 },
         { text: `${rank.score}胜点`, color: "#172027", size: 20, weight: 900 }
       ], x + width / 2, y, width - 18);
+    }
+
+    function shareHistoryHighRank(mode) {
+      return getRankHistory(mode).length < 5
+        ? { placeholder: true, text: "暂无段位" }
+        : getHistoryHighRank(mode);
     }
 
     function drawShareSummaryTable(ctx, x, y, width) {
@@ -2797,7 +2813,7 @@
         cellX += columns[0];
         drawShareRankCell(ctx, shareCurrentRank(mode), cellX, rowY, columns[1]);
         cellX += columns[1];
-        drawShareRankCell(ctx, getHistoryHighRank(mode), cellX, rowY, columns[2]);
+        drawShareRankCell(ctx, shareHistoryHighRank(mode), cellX, rowY, columns[2]);
         cellX += columns[2];
         const best = getBestTime(mode);
         drawCenteredPlainText(
