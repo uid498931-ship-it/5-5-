@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>舒尔特表格</title>
   <style>
     :root {
@@ -14,10 +14,14 @@
       --shadow: 0 26px 70px rgba(31, 40, 46, 0.18);
       --radius: 8px;
       --board-size: 600px;
-      --board-render-size: 600px;
-      --grid-cell-size: 120px;
       --cell-font: 60px;
       font-family: "Trebuchet MS", "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+
+    html {
+      width: 100%;
+      overflow-x: hidden;
+      scrollbar-gutter: stable;
     }
 
     * {
@@ -32,7 +36,21 @@
       background: #f7f8f6;
       display: grid;
       place-items: start center;
-      padding: clamp(14px, 3.5vw, 36px);
+      padding: clamp(6px, 1.6vw, 18px) clamp(14px, 3.5vw, 36px) clamp(14px, 3.5vw, 36px);
+      overflow-x: hidden;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .no-motion *,
+    .no-motion *::before,
+    .no-motion *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
     }
 
     button {
@@ -46,6 +64,11 @@
       cursor: pointer;
       transition: transform 160ms ease, filter 160ms ease;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus {
+      outline: none;
     }
 
     button:hover {
@@ -59,17 +82,19 @@
 
     .trainer {
       width: min(100%, 920px);
+      max-width: 100%;
       display: grid;
       justify-items: center;
       gap: 14px;
     }
 
     .top-controls {
+      order: 1;
       width: min(100%, 420px);
       display: grid;
       grid-template-columns: 76px minmax(160px, 1fr) 76px;
       align-items: center;
-      gap: 4px;
+      gap: 12px;
     }
 
     .top-button {
@@ -86,15 +111,16 @@
       text-shadow: 0 1px 0 rgba(0, 0, 0, 0.24);
     }
 
-    .timer-card {
+    .mode-switcher {
       width: 100%;
       min-width: 178px;
       justify-self: center;
       min-height: 86px;
       display: grid;
-      justify-items: center;
-      align-content: center;
-      gap: 6px;
+      grid-template-columns: minmax(38px, 1fr) max-content minmax(38px, 1fr);
+      justify-content: stretch;
+      align-items: center;
+      gap: 4px;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -102,23 +128,62 @@
       backdrop-filter: blur(16px);
     }
 
-    .clock-icon {
-      width: 22px;
-      height: 22px;
-      color: var(--muted);
-    }
-
-    .time-value {
-      font-variant-numeric: tabular-nums;
-      font-size: clamp(30px, 6vw, 52px);
-      font-weight: 900;
+    .mode-arrow {
+      width: 32px;
+      min-height: 32px;
+      padding: 0;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: #172027;
+      color: #fff;
+      font-size: 18px;
       line-height: 1;
     }
 
+    .mode-arrow.is-hidden {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #modePrev {
+      text-indent: -2px;
+    }
+
+    #modeNext {
+      text-indent: 2px;
+    }
+
+    .top-mode-label {
+      color: var(--ink);
+      display: grid;
+      gap: 2px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .top-mode-caption {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1;
+      transform: translateY(-5px);
+    }
+
+    .top-mode-name {
+      color: var(--ink);
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
     .board-shell {
-      width: var(--board-render-size);
+      order: 2;
+      width: min(var(--board-size), 100%);
+      max-width: 100%;
       background: var(--panel);
-      border: 1px solid var(--line);
+      border: 0;
       border-radius: 0;
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -127,14 +192,19 @@
 
     .board {
       position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       aspect-ratio: 1;
       width: 100%;
+      border: 0;
+      gap: 1px;
+      padding: 1px;
       overflow: hidden;
-      background: #0e1519;
+      background: rgba(0, 0, 0, 0.46);
     }
 
-    .board.finished::after {
-      opacity: 1;
+    .board::before {
+      content: none;
     }
 
     .board::after {
@@ -148,13 +218,25 @@
       transition: opacity 240ms ease;
     }
 
+    .board.finished {
+      background: rgba(0, 0, 0, 0.82);
+    }
+
+    .board.finished::after {
+      opacity: 0;
+    }
+
+    .board.finished::before {
+      opacity: 1;
+      transition: none;
+    }
+
     .cell {
-      isolation: isolate;
-      position: absolute;
-      left: calc(var(--x) * var(--grid-cell-size));
-      top: calc(var(--y) * var(--grid-cell-size));
-      width: calc(var(--grid-cell-size) + 1px);
-      height: calc(var(--grid-cell-size) + 1px);
+      position: relative;
+      min-width: 0;
+      width: 100%;
+      aspect-ratio: 1;
+      padding: 0;
       border: 0;
       border-radius: 0;
       display: grid;
@@ -163,17 +245,85 @@
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       line-height: 1;
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+      border: 0;
+      box-shadow: none;
       text-shadow: none;
       touch-action: manipulation;
       outline: none;
       overflow: hidden;
-      transition: box-shadow 140ms ease, transform 180ms ease;
+      transition: background-color 240ms ease, color 240ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .cell.pressing {
+      z-index: 4;
+    }
+
+    .cell.pressing .cell-number {
+      animation: pressPop 220ms cubic-bezier(.2, .9, .18, 1.18);
     }
 
     .cell:focus,
     .cell:focus-visible {
       outline: none;
+    }
+
+    .cell:not(.miss):hover,
+    .cell:not(.miss):active,
+    .cell:not(.miss):focus {
+      transform: none;
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      .cell:not(.miss):hover,
+      .cell:not(.miss):active,
+      .cell:not(.miss):focus {
+        box-shadow: none !important;
+      }
+    }
+
+    .cell-number {
+      position: relative;
+      z-index: 6;
+      transition: opacity 220ms ease, transform 220ms cubic-bezier(.2, .9, .18, 1.18);
+    }
+
+    .particle-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .board.finished .particle-layer {
+      z-index: 9;
+    }
+
+    .particle {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      background: var(--color);
+      box-shadow: 0 0 var(--glow) var(--color);
+      pointer-events: none;
+      transform-origin: center;
+      animation: particleBurst 560ms ease-out forwards;
+    }
+
+    .confetti-particle {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--size);
+      height: var(--size);
+      border-radius: 2px;
+      background: var(--color);
+      box-shadow: 0 0 var(--glow) var(--color);
+      pointer-events: none;
+      transform-origin: center;
     }
 
     .cell::before,
@@ -187,6 +337,9 @@
 
     .cell::before {
       z-index: 3;
+      left: 50%;
+      top: 50%;
+      translate: -50% -50%;
       width: 56%;
       aspect-ratio: 1;
       border: 5px solid rgba(255, 249, 191, 0.96);
@@ -199,18 +352,48 @@
       background: rgba(0, 0, 0, 0.72);
     }
 
-    .cell:hover {
-      z-index: 4;
-      box-shadow: inset 0 0 0 4px var(--hover-ring), inset 0 0 0 1px rgba(0, 0, 0, 0.46);
-      transform: none;
+    @media (hover: hover) and (pointer: fine) {
+      .cell:hover {
+        z-index: 4;
+        box-shadow: inset 0 0 0 4px var(--hover-ring);
+        transform: none;
+      }
     }
 
     .cell.done {
       pointer-events: none;
+      box-shadow: none !important;
     }
 
     .cell.done::after {
       opacity: 1;
+    }
+
+    .cell.done .cell-number {
+      opacity: 0.42;
+    }
+
+    .cell.vanished .cell-number {
+      opacity: 0;
+      transform: scale(1.16);
+    }
+
+    .board.finished .cell {
+      background-color: color-mix(in srgb, var(--cell-bg), #000 72%) !important;
+      color: rgba(0, 0, 0, 0.86) !important;
+      box-shadow: none;
+      transition: none;
+    }
+
+    .board.finished .cell-number {
+      transition: none;
+    }
+
+    .board.finished .cell::before,
+    .board.finished .cell::after {
+      opacity: 0 !important;
+      animation: none;
+      transition: none;
     }
 
     .cell.next::before,
@@ -221,7 +404,7 @@
 
     .cell.miss {
       animation: wrongShake 260ms cubic-bezier(.36, .07, .19, .97);
-      box-shadow: inset 0 0 0 5px rgba(255, 92, 92, 0.84), inset 0 0 0 1px rgba(0, 0, 0, 0.46);
+      box-shadow: inset 0 0 0 5px rgba(255, 92, 92, 0.84);
     }
 
     .finished .cell {
@@ -229,10 +412,19 @@
     }
 
     .bottom-actions {
+      order: 3;
       width: min(100%, 440px);
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
+    }
+
+    .bottom-actions.single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bottom-actions[hidden] {
+      display: none;
     }
 
     .bottom-actions button {
@@ -250,11 +442,20 @@
       color: #fff;
     }
 
+    .bottom-share-button {
+      background: #1f72d8;
+      color: #fff;
+      border-color: rgba(31, 114, 216, 0.28);
+    }
+
     .result {
+      order: 4;
       width: min(100%, 620px);
+      position: relative;
       padding: 20px;
       display: grid;
       gap: 16px;
+      grid-auto-rows: max-content;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -266,20 +467,70 @@
       display: none;
     }
 
-    .result-main {
-      display: grid;
-      justify-items: center;
-      gap: 6px;
-    }
-
     .result-title {
       margin: 0;
+      padding: 0;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      column-gap: 8px;
+      row-gap: 0;
       text-align: center;
-      font-size: 20px;
+      font-size: clamp(24px, 4vw, 32px);
       font-weight: 900;
+      line-height: 0.95;
+    }
+
+    .share-button {
+      min-height: 42px;
+      padding: 0 18px;
+      justify-self: stretch;
+      font-size: 18px;
+      border-width: 3px;
+      background: #1f72d8;
+      color: #fff;
+      border-color: rgba(31, 114, 216, 0.28);
+      box-shadow: 0 10px 22px rgba(31, 114, 216, 0.18);
+    }
+
+    .share-button[hidden] {
+      display: none;
     }
 
     .rank-name {
+      font-weight: 900;
+    }
+
+    .rank-score {
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .rank-points {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .rank-delta {
+      font-weight: 900;
+    }
+
+    .rank-delta.positive {
+      color: #24a060;
+    }
+
+    .rank-delta.negative {
+      color: #c73636;
+    }
+
+    .rank-delta.neutral {
+      color: var(--ink);
+    }
+
+    .mode-name {
+      color: var(--ink);
       font-weight: 900;
     }
 
@@ -289,47 +540,73 @@
       font-weight: 800;
     }
 
-    .result-time {
-      font-variant-numeric: tabular-nums;
-      font-size: clamp(44px, 9vw, 76px);
-      font-weight: 900;
-      line-height: 1;
-    }
-
     .result-stats {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .stat-box {
-      min-height: 82px;
-      padding: 12px;
-      display: grid;
-      align-content: center;
-      gap: 6px;
-      text-align: center;
+      gap: 0;
+      overflow: hidden;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: rgba(255, 255, 255, 0.62);
     }
 
+    .stat-box {
+      min-height: 66px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      align-content: center;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+    }
+
+    .stat-box:nth-child(2n) {
+      border-right: 0;
+    }
+
+    .stat-box:nth-last-child(-n + 2) {
+      border-bottom: 0;
+    }
+
     .stat-value {
       font-size: 24px;
       font-weight: 900;
+      line-height: 1.18;
       font-variant-numeric: tabular-nums;
+    }
+
+    .history-rank {
+      font-size: clamp(18px, 3vw, 24px);
+      line-height: 1.2;
+      word-break: keep-all;
+    }
+
+    .empty-value {
+      color: #aab2b8;
+      font-weight: 900;
     }
 
     .split-table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       overflow: hidden;
       border-radius: var(--radius);
       font-variant-numeric: tabular-nums;
     }
 
+    .split-table[hidden] {
+      display: none;
+    }
+
     .split-table th,
     .split-table td {
+      width: 50%;
       padding: 10px 12px;
       text-align: center;
       border-bottom: 1px solid rgba(23, 32, 39, 0.1);
@@ -343,6 +620,57 @@
     .split-table .wrong-entry {
       color: #c73636;
       font-weight: 900;
+    }
+
+    .share-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 42;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+      background: rgba(23, 32, 39, 0.42);
+      backdrop-filter: blur(8px);
+    }
+
+    .share-preview-overlay[hidden] {
+      display: none;
+    }
+
+    .share-preview-panel {
+      width: min(100%, 420px);
+      max-height: calc(100dvh - 28px);
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .share-preview-panel img {
+      width: 100%;
+      max-height: calc(100dvh - 118px);
+      object-fit: contain;
+      background: #f7f8f6;
+    }
+
+    .share-preview-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .share-preview-actions button {
+      min-height: 42px;
+      padding: 0 10px;
+      font-size: 15px;
+    }
+
+    .share-preview-primary {
+      background: #1f72d8;
+      color: #fff;
     }
 
     .modal {
@@ -363,7 +691,7 @@
     .modal-panel {
       width: min(100%, 540px);
       max-height: min(86vh, 760px);
-      overflow: auto;
+      overflow: hidden;
       padding: 20px;
       display: grid;
       gap: 18px;
@@ -373,27 +701,184 @@
       box-shadow: var(--shadow);
     }
 
+    #infoPanel .modal-panel {
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+
+    .rank-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      color: #f5efe4;
+      background:
+        radial-gradient(circle at 50% 58%, rgba(87, 105, 121, 0.34), transparent 34%),
+        linear-gradient(180deg, #01080b 0%, #061217 46%, #0b1216 100%);
+      opacity: 0;
+      transform: scale(1.015);
+    }
+
+    .rank-overlay[hidden] {
+      display: none;
+    }
+
+    .rank-overlay.showing {
+      animation: rankOverlayIn 420ms ease-out forwards;
+    }
+
+    .rank-overlay.closing {
+      animation: rankOverlayOut 260ms ease-in forwards;
+      pointer-events: none;
+    }
+
+    .rank-overlay.showing .rank-emblem {
+      animation: rankEmblemIn 620ms cubic-bezier(.2, .9, .18, 1.1) 120ms both;
+    }
+
+    .rank-overlay.closing .rank-emblem {
+      animation: rankEmblemOut 220ms ease-in forwards;
+    }
+
+    .rank-overlay-head {
+      padding: 18px 18px 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(214, 161, 67, 0.7);
+    }
+
+    .rank-overlay-title {
+      margin: 0;
+      font-size: clamp(22px, 5vw, 34px);
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .rank-overlay-subtitle {
+      margin: 6px 0 0;
+      color: rgba(245, 239, 228, 0.78);
+      font-weight: 800;
+    }
+
+    .rank-overlay-stage {
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .rank-emblem {
+      position: relative;
+      width: min(52vw, 260px);
+      aspect-ratio: 1;
+      color: var(--rank-color, #d6a143);
+      filter: drop-shadow(0 14px 30px color-mix(in srgb, var(--rank-color, #d6a143), transparent 54%));
+      image-rendering: pixelated;
+    }
+
+    .rank-emblem svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+      shape-rendering: crispEdges;
+    }
+
+    .rank-emblem::before,
+    .rank-emblem::after {
+      content: none;
+      position: absolute;
+      top: 22%;
+      width: 43%;
+      height: 58%;
+      background: linear-gradient(135deg, color-mix(in srgb, currentColor, #fff 28%), color-mix(in srgb, currentColor, #111 38%));
+      clip-path: polygon(0 50%, 26% 0, 72% 35%, 100% 8%, 82% 72%, 46% 100%, 30% 62%);
+    }
+
+    .rank-emblem::before {
+      left: 4%;
+      transform: skewY(-12deg) rotate(-7deg);
+    }
+
+    .rank-emblem::after {
+      right: 4%;
+      transform: scaleX(-1) skewY(-12deg) rotate(-7deg);
+    }
+
+    .rank-emblem-core {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 36%;
+      width: 32%;
+      height: 48%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, color-mix(in srgb, currentColor, #fff 36%), color-mix(in srgb, currentColor, #090909 42%));
+      clip-path: polygon(50% 0, 86% 32%, 70% 100%, 50% 72%, 30% 100%, 14% 32%);
+    }
+
+    .rank-overlay-foot {
+      padding: 22px 18px 28px;
+      display: grid;
+      place-items: center;
+      border-top: 1px solid rgba(214, 161, 67, 0.7);
+    }
+
+    .rank-ok-button {
+      min-width: 150px;
+      min-height: 44px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #f5efe4;
+      border-color: rgba(214, 161, 67, 0.8);
+    }
+
+    @keyframes rankOverlayIn {
+      from { opacity: 0; transform: scale(1.015); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes rankOverlayOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.985); }
+    }
+
+    @keyframes rankEmblemIn {
+      from { opacity: 0; transform: translateY(28px) scale(0.84); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes rankEmblemOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(14px) scale(0.92); }
+    }
+
     .modal-head {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      justify-content: space-between;
       gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #172027;
     }
 
     .modal-title {
       margin: 0;
-      font-size: 19px;
+      font-size: 26px;
       font-weight: 900;
+      line-height: 1.15;
     }
 
     .icon-button {
-      width: 42px;
+      width: auto;
       min-height: 42px;
-      padding: 0;
+      padding: 0 16px;
       display: grid;
       place-items: center;
+      align-self: start;
+      transform: translateY(-3px);
       background: #172027;
       color: #fff;
+      font-size: 16px;
+      line-height: 1;
     }
 
     .field {
@@ -406,6 +891,18 @@
       align-items: baseline;
       justify-content: space-between;
       gap: 12px;
+    }
+
+    .settings-section-title {
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .settings-subtitle {
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
     }
 
     .mode-grid {
@@ -425,27 +922,97 @@
       color: #fff;
     }
 
+    .square-toggle {
+      width: min(100%, 150px);
+      min-height: 42px;
+      padding: 0 14px;
+      justify-self: end;
+      border: 1px solid rgba(23, 32, 39, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--ink);
+      text-align: center;
+      box-shadow: none;
+      font-size: calc(1em - 2px);
+      font-weight: 900;
+      transition: none;
+    }
+
+    .square-toggle[aria-pressed="true"] {
+      background: #172027;
+      color: #fff;
+    }
+
+    .square-toggle:hover {
+      transform: none;
+    }
+
     .shortcut-grid {
       display: grid;
       gap: 10px;
     }
 
-    .shortcut-row {
+    .archive-grid {
       display: grid;
-      grid-template-columns: 1fr minmax(110px, 150px);
+      gap: 10px;
+    }
+
+    .shortcut-row,
+    .archive-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: center;
-      gap: 12px;
+      min-height: 44px;
+      column-gap: 18px;
+    }
+
+    .shortcut-row > span,
+    .archive-row > span {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .shortcut-button,
+    .visibility-button,
+    .archive-select-button,
+    .archive-delete-button {
+      width: min(100%, 150px);
+      justify-self: center;
+      min-height: 42px;
+      border: 1px solid rgba(23, 32, 39, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--ink);
+      text-align: center;
+    }
+
+    .visibility-button[aria-pressed="false"] {
+      color: var(--muted);
     }
 
     .shortcut-button {
-      min-height: 42px;
-      background: rgba(255, 255, 255, 0.74);
-      color: var(--ink);
+      background: #172027;
+      color: #fff;
+      border-color: rgba(23, 32, 39, 0.24);
     }
 
     .shortcut-button.recording {
       background: #172027;
       color: #fff;
+    }
+
+    .archive-select-button.current {
+      background: #172027;
+      color: #fff;
+    }
+
+    .archive-delete-button {
+      background: #c73636;
+      color: #fff;
+      border-color: rgba(199, 54, 54, 0.48);
     }
 
     input[type="range"] {
@@ -463,11 +1030,19 @@
       margin: 0 0 14px;
     }
 
+    .info-copy .rank-average-note {
+      margin-bottom: 0;
+    }
+
     .info-heading {
       margin: 18px 0 8px;
       font-size: 18px;
       font-weight: 900;
       line-height: 1.25;
+    }
+
+    .info-copy > .info-heading:first-child {
+      margin-top: 0;
     }
 
     .rank-table,
@@ -511,69 +1086,166 @@
       100% { transform: scale(1); }
     }
 
-    @media (max-width: 620px) {
+    @keyframes pressPop {
+      0% { transform: scale(1); }
+      38% { transform: scale(0.72); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes particleBurst {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0);
+      }
+      18% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(1.16);
+      }
+    }
+
+    @keyframes confettiCannon {
+      0% {
+        opacity: 0;
+        transform: translate(0, 0) rotate(0deg) scale(0.62);
+      }
+      8% {
+        opacity: 1;
+        transform: translate(calc(var(--launch-x) * 0.18), calc(var(--launch-y) * 0.18)) rotate(calc(var(--spin) * 0.14)) scale(1);
+      }
+      34% {
+        opacity: 1;
+        transform: translate(var(--launch-x), var(--launch-y)) rotate(calc(var(--spin) * 0.45)) scale(1);
+      }
+      62% {
+        opacity: 1;
+        transform: translate(calc(var(--launch-x) + var(--drift-x) * 0.45), calc(var(--launch-y) + var(--drift-y) * 0.42)) rotate(calc(var(--spin) * 0.72)) scale(0.96);
+      }
+      86% {
+        opacity: 1;
+        transform: translate(calc(var(--launch-x) + var(--drift-x) * 0.84), calc(var(--launch-y) + var(--drift-y) * 0.82)) rotate(calc(var(--spin) * 0.92)) scale(0.84);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(var(--launch-x) + var(--drift-x)), calc(var(--launch-y) + var(--drift-y))) rotate(var(--spin)) scale(0.52);
+      }
+    }
+
+    @media (max-width: 768px) {
       body {
-        padding: 10px;
+        padding: max(4px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
       }
 
       .trainer {
+        width: 100%;
         gap: 10px;
       }
 
       .top-controls {
-        width: min(100%, 340px);
-        grid-template-columns: 62px minmax(132px, 1fr) 62px;
-        gap: 4px;
-      }
-
-      .top-button {
-        padding: 0 8px;
-        min-height: 44px;
-        font-size: 14px;
-      }
-
-      .settings-button {
-        min-height: 46px;
-      }
-
-      .timer-card {
-        min-width: 0;
-        min-height: 68px;
-        gap: 4px;
-      }
-
-      .clock-icon {
-        width: 18px;
-        height: 18px;
-      }
-
-      .time-value {
-        font-size: clamp(26px, 8vw, 38px);
-      }
-
-      .bottom-actions {
-        width: min(100%, 340px);
+        order: 1;
+        width: min(100%, 360px);
+        grid-template-columns: minmax(58px, 66px) minmax(0, 1fr) minmax(58px, 66px);
         gap: 8px;
       }
 
-      .bottom-actions button {
-        min-height: 52px;
+      .top-button {
+        padding: 0 10px;
+        min-height: 48px;
         font-size: 15px;
+      }
+
+      .settings-button {
+        min-height: 48px;
+      }
+
+      .mode-switcher {
+        min-width: 0;
+        min-height: 70px;
+        gap: 5px;
+        grid-template-columns: minmax(30px, 1fr) max-content minmax(30px, 1fr);
+      }
+
+      .mode-arrow {
+        width: 28px;
+        min-height: 28px;
+        font-size: 16px;
+      }
+
+      .top-mode-label {
+        gap: 2px;
+      }
+
+      .top-mode-caption {
+        font-size: 12px;
+        transform: translateY(-4px);
+      }
+
+      .top-mode-name {
+        font-size: clamp(18px, 6vw, 23px);
+      }
+
+      .board-shell {
+        order: 3;
+        width: min(var(--board-size), 100%);
+        margin-top: 0;
+      }
+
+      .cell {
+        font-size: clamp(22px, var(--cell-font), 58px);
+      }
+
+      .cell::before {
+        border-width: 4px;
+      }
+
+      .bottom-actions {
+        order: 2;
+        width: min(var(--board-size), 100%);
+        gap: 8px;
+        margin-block: 12px 14px;
+      }
+
+      .result {
+        order: 4;
+      }
+
+      .bottom-actions button {
+        min-height: 54px;
+        font-size: 16px;
       }
 
       .result {
         width: 100%;
-        padding: 14px;
-        gap: 12px;
+        padding: 10px;
+        gap: 7px;
       }
 
-      .result-time {
-        font-size: clamp(40px, 12vw, 58px);
+      .result-title {
+        padding: 0;
+        min-height: 16px;
+        line-height: 0.88;
+      }
+
+      .size-field {
+        display: none;
+      }
+
+      .share-button {
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 16px;
       }
 
       .stat-box {
-        min-height: 72px;
-        padding: 10px;
+        min-height: 48px;
+        padding: 5px 6px;
+        gap: 3px;
+      }
+
+      #bestTime {
+        font-size: clamp(18px, 3vw, 24px);
       }
 
       .modal {
@@ -581,23 +1253,82 @@
       }
 
       .modal-panel {
+        width: 100%;
+        max-height: calc(100dvh - 20px);
+        overflow: hidden;
         padding: 16px;
         gap: 14px;
       }
-    }
 
-    @media (max-width: 380px) {
-      .top-controls {
-        width: 100%;
-        grid-template-columns: 56px minmax(124px, 1fr) 56px;
+      #infoPanel .modal-panel {
+        overflow: auto;
       }
 
-      .top-button {
-        padding: 0 6px;
+      .mode-grid {
+        gap: 6px;
       }
 
-      .bottom-actions {
-        width: 100%;
+      .settings-section-title {
+        font-size: 17px;
+      }
+
+      .settings-subtitle {
+        font-size: 17px;
+      }
+
+      .mode-button,
+      .shortcut-button,
+      input[type="range"] {
+        min-height: 46px;
+      }
+
+      .shortcut-row,
+      .archive-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        min-height: 46px;
+        column-gap: 10px;
+      }
+
+      .shortcut-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .shortcut-row .visibility-button {
+        display: none;
+      }
+
+      .shortcut-button,
+      .visibility-button,
+      .archive-select-button,
+      .archive-delete-button {
+        width: min(100%, 148px);
+      }
+
+      .animation-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: center;
+        column-gap: 10px;
+      }
+
+      .animation-row > span {
+        justify-self: start;
+      }
+
+      .animation-row .square-toggle {
+        width: min(100%, 148px);
+        min-height: 46px;
+        justify-self: center;
+        padding: 0 14px;
+      }
+
+      .split-table th,
+      .split-table td,
+      .rank-table th,
+      .rank-table td,
+      .mode-table th,
+      .mode-table td {
+        padding: 6px 6px;
       }
     }
   </style>
@@ -606,13 +1337,13 @@
   <main class="trainer">
     <div class="top-controls" aria-label="顶部控制">
       <button id="infoToggle" class="top-button" type="button">说明</button>
-      <section class="timer-card" aria-label="计时器">
-        <svg class="clock-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle>
-          <path d="M12 9v5l3 2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-          <path d="M9 2h6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path>
-        </svg>
-        <div class="time-value" id="time">00.000</div>
+      <section class="mode-switcher" aria-label="模式切换">
+        <button class="mode-arrow" id="modePrev" type="button" aria-label="上一个模式">◀</button>
+        <div class="top-mode-label" id="topModeLabel">
+          <span class="top-mode-caption">模式</span>
+          <span class="top-mode-name" id="topModeName">入门</span>
+        </div>
+        <button class="mode-arrow" id="modeNext" type="button" aria-label="下一个模式">▶</button>
       </section>
       <button id="settingsToggle" class="top-button settings-button" type="button" aria-keyshortcuts="Escape">设置</button>
     </div>
@@ -626,22 +1357,28 @@
       <button id="peek" class="hint-button" type="button" aria-keyshortcuts="Shift">提示</button>
     </div>
 
-    <section class="result" id="resultPanel" hidden aria-live="polite">
-      <p class="result-title" id="resultTitle">测试结果</p>
-      <div class="result-main">
-        <div class="result-time" id="resultTime">00.000s</div>
-      </div>
+    <section class="result" id="resultPanel" aria-live="polite">
+      <p class="result-title" id="resultTitle">下一个：1</p>
       <div class="result-stats">
         <div class="stat-box">
-          <span class="result-label">错误次数</span>
-          <span class="stat-value" id="errorCount">0</span>
+          <span class="result-label" id="rankStatusLabel">当前段位</span>
+          <span class="stat-value history-rank" id="rankStatus"><span class="empty-value">暂无</span></span>
         </div>
         <div class="stat-box">
-          <span class="result-label">历史最佳</span>
-          <span class="stat-value" id="bestTime">--</span>
+          <span class="result-label" id="timeLabel">目前用时</span>
+          <span class="stat-value history-rank" id="time">0.000 秒</span>
+        </div>
+        <div class="stat-box">
+          <span class="result-label">历史最高</span>
+          <span class="stat-value history-rank" id="historyHigh"><span class="empty-value">暂无</span></span>
+        </div>
+        <div class="stat-box">
+          <span class="result-label">模式最佳</span>
+          <span class="stat-value" id="bestTime"><span class="empty-value">暂无</span></span>
         </div>
       </div>
-      <table class="split-table" aria-label="每个数字对应花费的时间">
+      <button class="share-button" id="shareResult" type="button" hidden>分享</button>
+      <table class="split-table" id="splitTable" aria-label="每个数字对应花费的时间" hidden>
         <thead>
           <tr>
             <th>数字</th>
@@ -657,30 +1394,19 @@
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
       <div class="modal-head">
         <p class="modal-title" id="settingsTitle">设置</p>
-        <button class="icon-button" id="settingsClose" type="button" aria-label="关闭设置">×</button>
+        <button class="icon-button" id="settingsClose" type="button" aria-label="关闭设置">关闭</button>
       </div>
 
-      <div class="field">
-        <span class="field-row">
-          <span>模式</span>
-        </span>
-        <div class="mode-grid">
-          <button class="mode-button" type="button" data-mode="intro">入门</button>
-          <button class="mode-button" type="button" data-mode="simple">简单</button>
-          <button class="mode-button" type="button" data-mode="normal">一般</button>
-        </div>
-      </div>
-
-      <label class="field" for="sizeRange">
-        <span class="field-row">
+      <label class="field size-field" for="sizeRange">
+        <span class="field-row settings-subtitle">
           <span>格子</span>
-          <span id="sizeValue">600</span>
+          <span id="sizeValue">600px</span>
         </span>
         <input id="sizeRange" type="range" min="400" max="800" step="10" value="600">
       </label>
 
       <label class="field" for="volumeRange">
-        <span class="field-row">
+        <span class="field-row settings-subtitle">
           <span>音效</span>
           <span id="volumeValue">50%</span>
         </span>
@@ -688,21 +1414,49 @@
       </label>
 
       <div class="field">
-        <span class="field-row">
-          <span>快捷键</span>
+        <span class="field-row settings-subtitle animation-row">
+          <span>动画</span>
+          <button class="square-toggle" id="animationToggle" type="button" aria-pressed="true" aria-label="动画开启">开启</button>
+        </span>
+      </div>
+
+      <div class="field">
+        <span class="field-row settings-section-title">
+          <span>按键</span>
         </span>
         <div class="shortcut-grid">
           <div class="shortcut-row">
-            <span>点击</span>
-            <button class="shortcut-button" id="clickShortcut" type="button" data-action="cellClick">鼠标左键</button>
-          </div>
-          <div class="shortcut-row">
             <span>刷新</span>
             <button class="shortcut-button" id="refreshShortcut" type="button" data-action="refresh">空格</button>
+            <button class="visibility-button" type="button" data-action="refresh" aria-pressed="true">显示</button>
           </div>
           <div class="shortcut-row">
             <span>提示</span>
             <button class="shortcut-button" id="hintShortcut" type="button" data-action="hint">Shift</button>
+            <button class="visibility-button" type="button" data-action="hint" aria-pressed="true">显示</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-row settings-section-title">
+          <span>存档</span>
+        </span>
+        <div class="archive-grid">
+          <div class="archive-row">
+            <span>1</span>
+            <button class="archive-select-button" type="button" data-slot="1">当前</button>
+            <button class="archive-delete-button" type="button" data-slot="1">删除</button>
+          </div>
+          <div class="archive-row">
+            <span>2</span>
+            <button class="archive-select-button" type="button" data-slot="2">选择</button>
+            <button class="archive-delete-button" type="button" data-slot="2">删除</button>
+          </div>
+          <div class="archive-row">
+            <span>3</span>
+            <button class="archive-select-button" type="button" data-slot="3">选择</button>
+            <button class="archive-delete-button" type="button" data-slot="3">删除</button>
           </div>
         </div>
       </div>
@@ -713,15 +1467,18 @@
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
       <div class="modal-head">
         <p class="modal-title" id="infoTitle">说明</p>
-        <button class="icon-button" id="infoClose" type="button" aria-label="关闭说明">×</button>
+        <button class="icon-button" id="infoClose" type="button" aria-label="关闭说明">关闭</button>
       </div>
       <div class="info-copy">
-        <p>舒尔特表格是一种注意力和视觉搜索训练工具，通常由正方形表格组成，格子中随机排列数字、字母或符号。最典型形式为 5×5 数字表格，数字 1 到 25 随机排列，训练者需按顺序快速找到并指出或读出。主要训练注意力集中、视觉搜索、视野广度、眼动协调、反应速度、信息处理、速读辅助等能力。</p>
-        <div class="info-heading">模式说明</div>
+        <div class="info-heading">基本介绍</div>
+        <p>舒尔特表格是一种注意力和视觉搜索训练工具，通常由正方形表格组成，格子中随机排列数字、字母或符号，训练者需按顺序找到并指出或读出。<br>最典型形式为 5×5 数字表格，数字 1 到 25 随机排列。<br>主要作用：锻炼注意力、提高反应速度、辅助速读、增加视野广度、提高眼动协调、视觉搜索、信息处理等能力。</p>
+        <div class="info-heading">训练方法</div>
+        <p>将表格置于眼前 30–50 厘米处。<br>视线固定表格中心，用余光查找目标数字。<br>按顺序从 1 查找到最大数字，可用手指点读、眼睛默找或口头报数。<br>每次训练 5–10 分钟，避免眼睛疲劳。<br>使用者通过持续练习，可将完成时间加快的趋势作为进步指标。</p>
+        <div class="info-heading">模式差异</div>
         <table class="mode-table">
           <thead>
             <tr>
-              <th>难度</th>
+              <th>难度等级</th>
               <th>格子背景</th>
               <th>变暗时效</th>
             </tr>
@@ -732,31 +1489,57 @@
             <tr><td>一般</td><td>彩色</td><td>短暂</td></tr>
           </tbody>
         </table>
-        <div class="info-heading">基本训练方法</div>
-        <p>将表格置于眼前 30–50 厘米处。<br>视线固定表格中心，使用余光查找目标数字。<br>按顺序从 1 查找到最大数字，可用手指点读、眼睛默找或口头报数。<br>每次训练 5–10 分钟，避免眼疲劳，持续练习可观察完成时间下降趋势作为进步指标。</p>
         <div class="info-heading">水平参考</div>
         <table class="rank-table">
           <thead>
             <tr>
               <th>段位</th>
-              <th>时间</th>
+              <th>用时</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>坚韧黑铁</td><td>＞45s</td></tr>
-            <tr><td>英勇黄铜</td><td>40~45s</td></tr>
-            <tr><td>不屈白银</td><td>35~40s</td></tr>
-            <tr><td>荣耀黄金</td><td>30~35s</td></tr>
-            <tr><td>华贵铂金</td><td>25~30s</td></tr>
-            <tr><td>流光翡翠</td><td>20~25s</td></tr>
-            <tr><td>璀璨钻石</td><td>15~20s</td></tr>
-            <tr><td>超凡大师</td><td>10~15s</td></tr>
-            <tr><td>傲世宗师</td><td>5~10s</td></tr>
-            <tr><td>最强王者</td><td>＜5s</td></tr>
+            <tr><td><span style="color: #626271">坚韧黑铁</span></td><td>＞45s</td></tr>
+            <tr><td><span style="color: #b87756">英勇黄铜</span></td><td>40~45s</td></tr>
+            <tr><td><span style="color: #9fb2c4">不屈白银</span></td><td>35~40s</td></tr>
+            <tr><td><span style="color: #d6a143">荣耀黄金</span></td><td>30~35s</td></tr>
+            <tr><td><span style="color: #25a99e">华贵铂金</span></td><td>25~30s</td></tr>
+            <tr><td><span style="color: #36b979">流光翡翠</span></td><td>20~25s</td></tr>
+            <tr><td><span style="color: #6f8dff">璀璨钻石</span></td><td>15~20s</td></tr>
+            <tr><td><span style="color: #d84bef">超凡大师</span></td><td>10~15s</td></tr>
+            <tr><td><span style="color: #f15b4f">傲世宗师</span></td><td>5~10s</td></tr>
+            <tr><td><span style="color: #48c5ff">最强王者</span></td><td>＜5s</td></tr>
           </tbody>
         </table>
+        <p class="rank-average-note">当前段位取对应模式最近 20 局的平均用时。</p>
+        <p><span style="color: #626271">坚韧黑铁</span>到<span style="color: #6f8dff">璀璨钻石</span>分为从 I~IV 四个小段，每个小段对应 100 胜点，晋升到下个小段后会重置胜点。<br><span style="color: #d84bef">超凡大师</span>到<span style="color: #48c5ff">最强王者</span>不设小段，每个大段对应 500 胜点，晋级到下个大段后不重置胜点。</p>
       </div>
     </section>
+  </div>
+
+  <div class="share-preview-overlay" id="sharePreviewOverlay" hidden>
+    <section class="share-preview-panel" role="dialog" aria-modal="true" aria-label="分享图片预览">
+      <img id="sharePreviewImage" alt="舒尔特表格成绩">
+      <div class="share-preview-actions">
+        <button class="share-preview-primary" id="sharePreviewNative" type="button">分享</button>
+        <button id="sharePreviewSave" type="button">保存</button>
+        <button id="sharePreviewClose" type="button">关闭</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="rank-overlay" id="rankOverlay" hidden>
+    <div class="rank-overlay-head">
+      <p class="rank-overlay-title" id="rankOverlayTitle"></p>
+      <p class="rank-overlay-subtitle" id="rankOverlaySubtitle"></p>
+    </div>
+    <div class="rank-overlay-stage">
+      <div class="rank-emblem" id="rankOverlayEmblem" aria-hidden="true">
+        <span class="rank-emblem-core"></span>
+      </div>
+    </div>
+    <div class="rank-overlay-foot">
+      <button class="rank-ok-button" id="rankOverlayOk" type="button">OK</button>
+    </div>
   </div>
 
   <script>
@@ -775,14 +1558,36 @@
     const sizeValue = document.querySelector("#sizeValue");
     const volumeRange = document.querySelector("#volumeRange");
     const volumeValue = document.querySelector("#volumeValue");
+    const animationToggle = document.querySelector("#animationToggle");
     const shortcutButtons = document.querySelectorAll(".shortcut-button");
+    const visibilityButtons = document.querySelectorAll(".visibility-button");
+    const archiveSelectButtons = document.querySelectorAll(".archive-select-button");
+    const archiveDeleteButtons = document.querySelectorAll(".archive-delete-button");
     const modeButtons = document.querySelectorAll(".mode-button");
+    const modePrevBtn = document.querySelector("#modePrev");
+    const modeNextBtn = document.querySelector("#modeNext");
+    const topModeLabel = document.querySelector("#topModeLabel");
+    const topModeName = document.querySelector("#topModeName");
     const resultPanel = document.querySelector("#resultPanel");
+    const shareResultBtn = document.querySelector("#shareResult");
+    const sharePreviewOverlay = document.querySelector("#sharePreviewOverlay");
+    const sharePreviewImage = document.querySelector("#sharePreviewImage");
+    const sharePreviewNativeBtn = document.querySelector("#sharePreviewNative");
+    const sharePreviewSaveBtn = document.querySelector("#sharePreviewSave");
+    const sharePreviewCloseBtn = document.querySelector("#sharePreviewClose");
     const resultTitleEl = document.querySelector("#resultTitle");
-    const resultTimeEl = document.querySelector("#resultTime");
-    const errorCountEl = document.querySelector("#errorCount");
+    const rankStatusLabel = document.querySelector("#rankStatusLabel");
+    const rankStatusEl = document.querySelector("#rankStatus");
+    const timeLabel = document.querySelector("#timeLabel");
+    const historyHighEl = document.querySelector("#historyHigh");
     const bestTimeEl = document.querySelector("#bestTime");
+    const splitTable = document.querySelector("#splitTable");
     const splitRows = document.querySelector("#splitRows");
+    const rankOverlay = document.querySelector("#rankOverlay");
+    const rankOverlayTitle = document.querySelector("#rankOverlayTitle");
+    const rankOverlaySubtitle = document.querySelector("#rankOverlaySubtitle");
+    const rankOverlayEmblem = document.querySelector("#rankOverlayEmblem");
+    const rankOverlayOk = document.querySelector("#rankOverlayOk");
 
     const colors = [
       "#8f2f24", "#135f8c", "#8a6517", "#176f5b", "#653070",
@@ -792,23 +1597,40 @@
       "#9b4835", "#665026", "#843e25", "#315d78", "#7a5c8d"
     ];
 
-    const bestKey = "schulte-best-ms-v2";
+    const legacyBestKey = "schulte-best-ms-v2";
+    const bestKeyPrefix = "schulte-best-ms-v3";
+    const archiveBestKeyPrefix = "schulte-archive-best-ms-v1";
+    const rankHistoryKeyPrefix = "schulte-rank-history-v1";
+    const rankHighKeyPrefix = "schulte-rank-high-v1";
+    const archiveKey = "schulte-current-archive-v1";
     const sizeKey = "schulte-board-size-v1";
     const volumeKey = "schulte-volume-v1";
+    const animationKey = "schulte-animations-v1";
+    const visibilityKey = "schulte-action-visibility-v1";
     const shortcutKey = "schulte-shortcuts-v1";
     const modeKey = "schulte-mode-v1";
-    const ranks = [
-      { name: "最强王者", max: 5, color: "#48c5ff" },
-      { name: "傲世宗师", max: 10, color: "#f15b4f" },
-      { name: "超凡大师", max: 15, color: "#d84bef" },
-      { name: "璀璨钻石", max: 20, color: "#6f8dff" },
-      { name: "流光翡翠", max: 25, color: "#36b979" },
-      { name: "华贵铂金", max: 30, color: "#25a99e" },
-      { name: "荣耀黄金", max: 35, color: "#d6a143" },
-      { name: "不屈白银", max: 40, color: "#9fb2c4" },
-      { name: "英勇黄铜", max: 45, color: "#b87756" },
-      { name: "坚韧黑铁", max: Infinity, color: "#626271" }
+    const shareUrl = "https://uid498931-ship-it.github.io/5-5-/";
+    const modeLabels = {
+      intro: "入门",
+      simple: "简单",
+      normal: "一般"
+    };
+    const modeOrder = ["intro", "simple", "normal"];
+    const masterRanks = [
+      { name: "最强王者", min: 0, max: 5, scoreBase: 1000, color: "#48c5ff" },
+      { name: "傲世宗师", min: 5, max: 10, scoreBase: 500, color: "#f15b4f" },
+      { name: "超凡大师", min: 10, max: 15, scoreBase: 0, color: "#d84bef" }
     ];
+    const divisionRanks = [
+      { name: "璀璨钻石", min: 15, max: 20, color: "#6f8dff" },
+      { name: "流光翡翠", min: 20, max: 25, color: "#36b979" },
+      { name: "华贵铂金", min: 25, max: 30, color: "#25a99e" },
+      { name: "荣耀黄金", min: 30, max: 35, color: "#d6a143" },
+      { name: "不屈白银", min: 35, max: 40, color: "#9fb2c4" },
+      { name: "英勇黄铜", min: 40, max: 45, color: "#b87756" },
+      { name: "坚韧黑铁", min: 45, max: Infinity, color: "#626271" }
+    ];
+    const rankDivisions = ["I", "II", "III", "IV"];
     let nextNumber = 1;
     let startTime = 0;
     let timerId = 0;
@@ -819,12 +1641,32 @@
     let lastCorrectCell = null;
     let lastSplitMs = 0;
     let splitTimes = [];
+    let currentBoardCells = [];
+    let lastResultRank = null;
+    let rankOverlayTimer = 0;
+    let rankOverlayCloseTimer = 0;
+    let shareInProgress = false;
+    let latestShareDataUrl = "";
+    let latestShareBlob = null;
     let errorCount = 0;
+    let usedHint = false;
     let activeCell = null;
+    let introPressedCell = null;
+    let introPressedByKey = false;
+    let introReleaseCommit = false;
+    let particleLayer = null;
+    let animationsEnabled = true;
+    let currentArchiveSlot = 1;
+    let pendingArchiveDelete = null;
+    let actionVisibility = {
+      refresh: true,
+      hint: true
+    };
     let recordingAction = null;
-    let currentMode = "normal";
+    let suppressShortcutClick = false;
+    let currentMode = "intro";
+    const cellClickShortcut = { type: "mouse", button: 0, label: "鼠标左键" };
     const defaultShortcuts = {
-      cellClick: { type: "mouse", button: 0, label: "鼠标左键" },
       refresh: { type: "key", code: "Space", key: " ", label: "空格" },
       hint: { type: "key", code: "ShiftLeft", key: "Shift", label: "Shift" }
     };
@@ -888,6 +1730,16 @@
       return `rgb(${r}, ${g}, ${b})`;
     }
 
+    function darkenHex(hex, amount) {
+      const channels = hexToRgb(hex).map((channel) => Math.round(channel * (1 - amount)));
+      return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+    }
+
+    function complementHex(hex) {
+      const channels = hexToRgb(hex).map((channel) => 255 - channel);
+      return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+    }
+
     function relativeLuminance(rgb) {
       const channels = rgb.map((channel) => {
         const value = channel / 255;
@@ -916,7 +1768,11 @@
     }
 
     function formatTime(ms, digits = 3) {
-      return (ms / 1000).toFixed(digits).padStart(digits + 3, "0");
+      return (ms / 1000).toFixed(digits);
+    }
+
+    function formatSecondsLabel(ms) {
+      return `${formatTime(ms, 3)} 秒`;
     }
 
     function mouseButtonLabel(button) {
@@ -970,7 +1826,11 @@
       try {
         const saved = JSON.parse(localStorage.getItem(shortcutKey) || "null");
         if (saved) {
-          shortcuts = { ...shortcuts, ...saved };
+          Object.keys(defaultShortcuts).forEach((action) => {
+            if (saved[action]) {
+              shortcuts[action] = saved[action];
+            }
+          });
         }
       } catch {
         localStorage.removeItem(shortcutKey);
@@ -978,7 +1838,7 @@
       const seen = new Set();
       Object.keys(shortcuts).forEach((action) => {
         const id = shortcutId(shortcuts[action]);
-        if (seen.has(id)) {
+        if (id === shortcutId(cellClickShortcut) || seen.has(id)) {
           shortcuts[action] = defaultShortcuts[action];
         }
         seen.add(shortcutId(shortcuts[action]));
@@ -991,7 +1851,7 @@
       recordingAction = action;
       shortcutButtons.forEach((button) => {
         button.classList.toggle("recording", button.dataset.action === action);
-        button.textContent = button.dataset.action === action ? "请按键/鼠标" : shortcuts[button.dataset.action].label;
+        button.textContent = button.dataset.action === action ? "按下对应按键" : shortcuts[button.dataset.action].label;
       });
     }
 
@@ -1002,6 +1862,10 @@
     }
 
     function setShortcut(action, shortcut) {
+      if (shortcutId(shortcut) === shortcutId(cellClickShortcut)) {
+        stopShortcutRecording();
+        return;
+      }
       const owner = findShortcutOwner(shortcut, action);
       if (owner) {
         shortcuts[owner] = shortcuts[action];
@@ -1013,7 +1877,7 @@
 
     function tick() {
       elapsed = performance.now() - startTime;
-      timeEl.textContent = formatTime(elapsed, 3);
+      timeEl.textContent = formatSecondsLabel(elapsed);
       timerId = requestAnimationFrame(tick);
     }
 
@@ -1037,8 +1901,10 @@
 
     function showNextHint() {
       clearHint();
+      if (board.classList.contains("finished")) return;
       const nextCell = document.querySelector(`.cell[data-number="${nextNumber}"]`);
       if (!nextCell || nextCell.classList.contains("done")) return;
+      usedHint = true;
       nextCell.classList.add("next", "hint-flash");
     }
 
@@ -1070,6 +1936,78 @@
       tone.connect(output);
       tone.start(now);
       tone.stop(now + length + 0.02);
+    }
+
+    function playPianoNote(order, volumeScale = 1) {
+      if (soundVolume <= 0) return;
+      const context = getAudioContext();
+      const now = context.currentTime;
+      const frequency = 261.625565 * (2 ** ((order - 1) / 12));
+      const output = context.createGain();
+      const filter = context.createBiquadFilter();
+      const duration = 0.24;
+      const peak = Math.min(0.58, 0.28 * volumeScale * soundVolume * 1.55);
+      const voices = [
+        { ratio: 1, gain: 1, type: "square", start: 0, end: duration, detune: 0 },
+        { ratio: 2, gain: 0.22, type: "square", start: 0.018, end: 0.17, detune: -7 },
+        { ratio: 0.5, gain: 0.16, type: "triangle", start: 0, end: 0.2, detune: 5 }
+      ];
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(Math.min(5200, frequency * 10), now);
+      filter.frequency.exponentialRampToValueAtTime(Math.min(2400, frequency * 4.2), now + duration);
+      filter.Q.setValueAtTime(4.5, now);
+      output.gain.setValueAtTime(0.0001, now);
+      output.gain.exponentialRampToValueAtTime(peak, now + 0.004);
+      output.gain.setValueAtTime(peak * 0.58, now + 0.045);
+      output.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      filter.connect(output);
+      output.connect(context.destination);
+
+      voices.forEach((voice) => {
+        const tone = context.createOscillator();
+        const toneGain = context.createGain();
+        const start = now + voice.start;
+        tone.type = voice.type;
+        tone.frequency.setValueAtTime(frequency * voice.ratio, start);
+        tone.frequency.setValueAtTime(frequency * voice.ratio, start + 0.045);
+        tone.detune.setValueAtTime(voice.detune, start);
+        toneGain.gain.setValueAtTime(voice.gain, start);
+        tone.connect(toneGain);
+        toneGain.connect(filter);
+        tone.start(start);
+        tone.stop(now + voice.end + 0.02);
+      });
+    }
+
+    function playIntroClearSound() {
+      playTone({
+        base: 540,
+        peak: 1180,
+        length: 0.12,
+        type: "triangle",
+        volume: 0.19
+      });
+      setTimeout(() => {
+        playTone({
+          base: 1180,
+          peak: 1720,
+          length: 0.09,
+          type: "sine",
+          volume: 0.13
+        });
+      }, 58);
+    }
+
+    function playIntroPressSound() {
+      playTone({
+        base: 260,
+        peak: 340,
+        length: 0.06,
+        type: "triangle",
+        volume: 0.08
+      });
     }
 
     function playConfirmSound(isFinish = false) {
@@ -1125,17 +2063,259 @@
       });
     }
 
+    function playPanelOpenSound(kind) {
+      playTone({
+        base: kind === "settings" ? 420 : 560,
+        peak: kind === "settings" ? 760 : 980,
+        length: 0.14,
+        type: kind === "settings" ? "triangle" : "sine",
+        volume: 0.14
+      });
+    }
+
+    function playPanelCloseSound(kind) {
+      playTone({
+        base: kind === "settings" ? 680 : 860,
+        peak: kind === "settings" ? 420 : 540,
+        length: 0.12,
+        type: kind === "settings" ? "triangle" : "sine",
+        volume: 0.12
+      });
+    }
+
+    function playModeSwitchSound(mode) {
+      const tones = {
+        intro: [360, 560, "square", 0.17],
+        simple: [470, 760, "triangle", 0.18],
+        normal: [620, 980, "square", 0.18]
+      };
+      const [base, peak, type, volume] = tones[mode] || tones.intro;
+      playTone({ base, peak, length: 0.13, type, volume });
+      setTimeout(() => playTone({ base: peak * 0.72, peak: peak * 1.08, length: 0.09, type, volume: volume * 0.72 }), 54);
+    }
+
+    function playSettingChangeSound(kind) {
+      playTone({
+        base: kind === "volume" ? 700 : 520,
+        peak: kind === "volume" ? 980 : 640,
+        length: 0.08,
+        type: "triangle",
+        volume: 0.1
+      });
+    }
+
+    function playShortcutStartSound() {
+      playTone({ base: 520, peak: 860, length: 0.1, type: "sine", volume: 0.12 });
+    }
+
+    function playShortcutSetSound() {
+      playTone({ base: 860, peak: 620, length: 0.11, type: "triangle", volume: 0.13 });
+    }
+
+    function getBestKey(mode = currentMode) {
+      return `${archiveBestKeyPrefix}-${currentArchiveSlot}-${mode}`;
+    }
+
+    function getBestTime(mode = currentMode) {
+      return Number(localStorage.getItem(getBestKey(mode)) || 0);
+    }
+
+    function getRankHistoryKey(mode = currentMode, slot = currentArchiveSlot) {
+      return `${rankHistoryKeyPrefix}-${slot}-${mode}`;
+    }
+
+    function getRankHistory(mode = currentMode) {
+      try {
+        const history = JSON.parse(localStorage.getItem(getRankHistoryKey(mode)) || "[]");
+        return Array.isArray(history)
+          ? history.filter((value) => Number.isFinite(value) && value > 0)
+          : [];
+      } catch {
+        localStorage.removeItem(getRankHistoryKey(mode));
+        return [];
+      }
+    }
+
+    function saveRankHistory(mode, history) {
+      localStorage.setItem(getRankHistoryKey(mode), JSON.stringify(history.slice(-20)));
+    }
+
+    function getRankHighKey(mode = currentMode, slot = currentArchiveSlot) {
+      return `${rankHighKeyPrefix}-${slot}-${mode}`;
+    }
+
+    function normalizeRankForStorage(rank) {
+      return {
+        mode: rank.mode,
+        name: rank.name,
+        score: rank.score,
+        color: rank.color,
+        totalPoints: rankTotalPoints(rank)
+      };
+    }
+
+    function getHistoryHighRank(mode = currentMode) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(getRankHighKey(mode)) || "null");
+        if (saved?.name && Number.isFinite(saved.score) && Number.isFinite(saved.totalPoints)) {
+          return saved;
+        }
+      } catch {
+        localStorage.removeItem(getRankHighKey(mode));
+      }
+      const history = getRankHistory(mode);
+      return history.length >= 5 ? normalizeRankForStorage(getRank(averageMs(history), mode)) : null;
+    }
+
+    function averageMs(history) {
+      if (!history.length) return elapsed;
+      return history.reduce((sum, value) => sum + value, 0) / history.length;
+    }
+
+    function rankPower(rank) {
+      if (rank.masterIndex !== undefined) {
+        return 28 + (masterRanks.length - 1 - rank.masterIndex);
+      }
+      return (divisionRanks.length - 1 - rank.divisionRankIndex) * 4 + (3 - rank.divisionIndex);
+    }
+
+    function rankTotalPoints(rank) {
+      return rankPower(rank) * 10000 + rank.score;
+    }
+
+    function storedRankPower(rank) {
+      return Math.floor(rank.totalPoints / 10000);
+    }
+
+    function rankContinuousPoints(rank) {
+      const basePower = rank.masterIndex !== undefined ? 28 : rankPower(rank);
+      return basePower * 100 + rank.score;
+    }
+
+    function visiblePointDelta(rank, previousRank) {
+      return previousRank ? rankContinuousPoints(rank) - rankContinuousPoints(previousRank) : 0;
+    }
+
+    function saveHistoryHighRank(rank, mode = currentMode) {
+      const currentHigh = getHistoryHighRank(mode);
+      const nextHigh = normalizeRankForStorage(rank);
+      if (!currentHigh || nextHigh.totalPoints > currentHigh.totalPoints) {
+        localStorage.setItem(getRankHighKey(mode), JSON.stringify(nextHigh));
+        return nextHigh;
+      }
+      return currentHigh;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function historyHighHtml(mode = currentMode) {
+      const high = getHistoryHighRank(mode);
+      if (!high) return `<span class="empty-value">暂无</span>`;
+      return `<span class="rank-name" style="color: ${high.color}">${escapeHtml(high.name)}</span> <span class="rank-score">${high.score}胜点</span>`;
+    }
+
+    function bestTimeHtml(mode = currentMode) {
+      const best = getBestTime(mode);
+      return best ? formatSecondsLabel(best) : `<span class="empty-value">暂无</span>`;
+    }
+
+    function rankDeltaHtml(delta) {
+      if (delta === null || delta === undefined) return "";
+      if (delta === 0) return ` <span class="rank-delta neutral">（0胜点）</span>`;
+      const sign = delta > 0 ? "+" : "-";
+      const className = delta > 0 ? "positive" : "negative";
+      return ` <span class="rank-delta ${className}">（${sign}${Math.abs(delta)}胜点）</span>`;
+    }
+
+    function pointChangeHtml(delta) {
+      if (delta === null || delta === undefined) return `<span class="empty-value">暂无</span>`;
+      if (delta === 0) return `<span class="rank-delta neutral">0胜点</span>`;
+      const sign = delta > 0 ? "+" : "-";
+      const className = delta > 0 ? "positive" : "negative";
+      return `<span class="rank-delta ${className}">${sign}${Math.abs(delta)}胜点</span>`;
+    }
+
+    function currentRankHtml(mode = currentMode) {
+      const history = getRankHistory(mode);
+      if (history.length < 5) return `<span class="empty-value">暂无</span>`;
+      const rank = getRank(averageMs(history), mode);
+      return `<span class="rank-name" style="color: ${rank.color}">${escapeHtml(rank.name)}</span> <span class="rank-score">${rank.score}胜点</span>`;
+    }
+
+    function rankTitleHtml(rank, prefix = "") {
+      return `${prefix}<span class="rank-name" style="color: ${rank.color}">${rank.name}</span> <span class="rank-points"><span class="rank-score">${rank.score}胜点</span></span>`;
+    }
+
+    function recordRankResult(ms, mode = currentMode) {
+      const before = getRankHistory(mode);
+      const previousRank = before.length >= 5 ? getRank(averageMs(before), mode) : null;
+      const previousHigh = getHistoryHighRank(mode);
+      const after = [...before, ms].slice(-20);
+      saveRankHistory(mode, after);
+      const rank = getRank(averageMs(after), mode);
+      const reachedNewHigh = !previousHigh || rankTotalPoints(rank) > previousHigh.totalPoints;
+      const reachedHigherTier = Boolean(previousHigh && rankPower(rank) > storedRankPower(previousHigh));
+      saveHistoryHighRank(rank, mode);
+      const countedGames = after.length;
+      return {
+        rank,
+        countedGames,
+        placementPrefix: countedGames >= 1 && countedGames <= 4 ? `（定级赛${countedGames}/5）` : "",
+        inPlacementPreview: countedGames >= 1 && countedGames <= 4,
+        placementCompleted: before.length === 4,
+        promoted: Boolean(previousRank && reachedNewHigh && reachedHigherTier),
+        pointDelta: visiblePointDelta(rank, previousRank)
+      };
+    }
+
+    function updateProgressPanel() {
+      if (board.classList.contains("finished") || nextNumber > 25) return;
+      resultPanel.dataset.state = "progress";
+      shareResultBtn.hidden = true;
+      renderBottomActions(false);
+      resultTitleEl.textContent = `下一个：${nextNumber}`;
+      rankStatusLabel.textContent = "当前段位";
+      rankStatusEl.innerHTML = currentRankHtml();
+      timeLabel.textContent = "目前用时";
+      historyHighEl.innerHTML = getRankHistory().length < 5 ? `<span class="empty-value">暂无</span>` : historyHighHtml();
+      bestTimeEl.innerHTML = bestTimeHtml();
+    }
+
     function renderResults() {
       const finalMs = elapsed;
-      const rank = getRank(finalMs);
-      const previousBest = Number(localStorage.getItem(bestKey) || 0);
-      const bestMs = previousBest && previousBest < finalMs ? previousBest : finalMs;
-      localStorage.setItem(bestKey, String(bestMs));
+      const previousBest = getBestTime();
+      const bestMs = usedHint
+        ? previousBest
+        : (previousBest && previousBest < finalMs ? previousBest : finalMs);
+      const rankEvent = usedHint ? null : recordRankResult(finalMs);
+      const rank = rankEvent?.rank || getRank(finalMs);
+      lastResultRank = usedHint ? null : rank;
+      if (!usedHint) {
+        localStorage.setItem(getBestKey(), String(bestMs));
+      }
 
-      resultTitleEl.innerHTML = `测试结果：<span class="rank-name" style="color: ${rank.color}">${rank.name}</span>`;
-      resultTimeEl.textContent = `${formatTime(finalMs, 3)}s`;
-      errorCountEl.textContent = String(errorCount);
-      bestTimeEl.textContent = `${formatTime(bestMs, 3)}s`;
+      resultPanel.dataset.state = "complete";
+      resultTitleEl.innerHTML = usedHint
+        ? `<span class="rank-name" style="color: var(--muted)">使用提示功能不计入段位</span>`
+        : (rankEvent.inPlacementPreview
+          ? `<span class="mode-name">${rankEvent.placementPrefix}暂无段位</span>`
+          : rankTitleHtml(rank, rankEvent.placementPrefix));
+      rankStatusLabel.textContent = "分数变动";
+      rankStatusEl.innerHTML = usedHint || rankEvent?.placementCompleted || rankEvent?.inPlacementPreview
+        ? `<span class="empty-value">暂无</span>`
+        : pointChangeHtml(rankEvent?.pointDelta);
+      timeLabel.textContent = "最终用时";
+      historyHighEl.innerHTML = rankEvent && rankEvent.countedGames <= 4 ? `<span class="empty-value">暂无</span>` : historyHighHtml();
+      bestTimeEl.innerHTML = bestMs ? formatSecondsLabel(bestMs) : `<span class="empty-value">暂无</span>`;
+      splitTable.hidden = false;
       splitRows.innerHTML = "";
 
       splitTimes.forEach(({ number, ms, wrong }) => {
@@ -1152,35 +2332,1068 @@
         splitRows.append(row);
       });
 
+      shareResultBtn.hidden = true;
+      renderBottomActions(true);
       resultPanel.hidden = false;
+
+      clearTimeout(rankOverlayTimer);
+      if (rankEvent?.placementCompleted) {
+        rankOverlayTimer = window.setTimeout(() => showRankOverlay("placement", rank), 520);
+      } else if (rankEvent?.promoted) {
+        rankOverlayTimer = window.setTimeout(() => showRankOverlay("promotion", rank), 520);
+      }
     }
 
-    function getRank(ms) {
+    function getRank(ms, mode = currentMode) {
       const seconds = ms / 1000;
-      return ranks.find((rank) => seconds < rank.max);
+      const modePrefix = `${modeLabels[mode]}模式`;
+      const masterIndex = masterRanks.findIndex((rank) => seconds >= rank.min && seconds < rank.max);
+      const masterRank = masterRanks[masterIndex];
+      if (masterRank) {
+        const score = masterRank.scoreBase + Math.max(0, Math.floor((masterRank.max * 1000 - ms) / 10));
+        return {
+          mode: modePrefix,
+          name: masterRank.name,
+          score,
+          color: masterRank.color,
+          masterIndex
+        };
+      }
+
+      const foundDivisionIndex = divisionRanks.findIndex((rank) => seconds >= rank.min && seconds < rank.max);
+      const divisionRankIndex = foundDivisionIndex >= 0 ? foundDivisionIndex : divisionRanks.length - 1;
+      const divisionRank = divisionRanks[divisionRankIndex];
+      const divisionIndex = Math.min(3, Math.floor((seconds - divisionRank.min) / 1.25));
+      const divisionStart = divisionRank.min + divisionIndex * 1.25;
+      const divisionEnd = divisionStart + 1.25;
+      const score = Math.max(0, Math.floor((divisionEnd * 1000 - ms) / 12.5));
+      return {
+        mode: modePrefix,
+        name: `${divisionRank.name} ${rankDivisions[divisionIndex]}`,
+        score,
+        color: divisionRank.color,
+        divisionRankIndex,
+        divisionIndex
+      };
+    }
+
+    function getRankTierName(rank) {
+      const names = ["黑铁", "黄铜", "白银", "黄金", "铂金", "翡翠", "钻石", "大师", "宗师", "王者"];
+      return names.find((name) => rank.name.includes(name)) || "黄金";
+    }
+
+    function buildRankEmblemSvg(rank) {
+      const tier = getRankTierName(rank);
+      const mirrorRows = (leftRows) => leftRows.map((left) => {
+        const side = left.padEnd(8, ".").slice(0, 8);
+        return side + [...side].reverse().join("");
+      });
+      const icons = {
+        "黑铁": {
+          dark: "#1b1c22", mid: "#555861", light: "#a8abb3", accent: "#f2f2f0",
+          rows: mirrorRows([
+            "........",
+            ".o......",
+            ".dm.....",
+            ".dlm....",
+            "..dlm...",
+            "..odlm..",
+            "...odlm.",
+            "....odla",
+            ".....odw",
+            ".....odl",
+            "....odm.",
+            "...odo..",
+            "........",
+            "........",
+            "........",
+            "........"
+          ])
+        },
+        "黄铜": {
+          dark: "#3b2017", mid: "#a55f41", light: "#f09a67", accent: "#ffd5ab",
+          rows: mirrorRows([
+            "........",
+            "..o.....",
+            "..md....",
+            "..lmd...",
+            "..olmd..",
+            ".odlmdo.",
+            ".odlmda.",
+            "..odlmaw",
+            "...odmaw",
+            "....odma",
+            "...odmm.",
+            "..odmo..",
+            "...oo...",
+            ".......o",
+            ".......d",
+            "........"
+          ])
+        },
+        "白银": {
+          dark: "#26313d", mid: "#7d91a8", light: "#c9ddf7", accent: "#ffffff",
+          rows: mirrorRows([
+            "........",
+            "..o.....",
+            ".olw....",
+            ".olm....",
+            ".odlm...",
+            "..odlm..",
+            "..odlma.",
+            "...olmaw",
+            "....olww",
+            "....odlw",
+            "...odmm.",
+            "..odm...",
+            ".oo.....",
+            "........",
+            "........",
+            "........"
+          ])
+        },
+        "黄金": {
+          dark: "#4d330a", mid: "#c98a16", light: "#ffd75c", accent: "#fff6a8",
+          rows: mirrorRows([
+            ".......o",
+            "......ol",
+            ".o....lm",
+            ".lo..olm",
+            ".lmododl",
+            ".dlmoodl",
+            ".odlmadw",
+            "..odmaww",
+            "...olaww",
+            "....dlaw",
+            "...odmm.",
+            "..odm...",
+            ".oo.....",
+            "........",
+            "........",
+            "........"
+          ])
+        },
+        "铂金": {
+          dark: "#0d3e3b", mid: "#1aa18f", light: "#64f3df", accent: "#d8fff8",
+          rows: mirrorRows([
+            "........",
+            ".o......",
+            ".ld.....",
+            ".lmdo...",
+            "..lmdo..",
+            "...lmd..",
+            ".oodlma.",
+            ".odmaaww",
+            "..odlaww",
+            "...odlww",
+            "....odl.",
+            "...odm..",
+            "..odo...",
+            "........",
+            "........",
+            "........"
+          ])
+        },
+        "翡翠": {
+          dark: "#0d4027", mid: "#1fa760", light: "#56f08d", accent: "#d8ffe5",
+          rows: mirrorRows([
+            "..o.....",
+            ".ol.....",
+            ".olm....",
+            ".olmd...",
+            "..lmd...",
+            "..olmm..",
+            "...olma.",
+            ".oodmaww",
+            ".odmawww",
+            "..odlaw.",
+            "...odm..",
+            "....od..",
+            ".....o..",
+            "......o.",
+            "......d.",
+            "........"
+          ])
+        },
+        "钻石": {
+          dark: "#14316f", mid: "#2368ff", light: "#73d7ff", accent: "#eff8ff",
+          rows: mirrorRows([
+            "........",
+            "..o.....",
+            "..lo....",
+            "..lmd...",
+            ".oldmd..",
+            ".odlmd..",
+            "..odlma.",
+            "...olmaw",
+            "....lwww",
+            "...olmaw",
+            "..odlmd.",
+            ".odmm...",
+            "..od....",
+            "...o....",
+            "........",
+            "........"
+          ])
+        },
+        "大师": {
+          dark: "#39124c", mid: "#9b36d8", light: "#e375ff", accent: "#ffd4ff",
+          rows: mirrorRows([
+            "..o.....",
+            "..lo....",
+            "..lm....",
+            "..lmd...",
+            "...lmd..",
+            "....lmd.",
+            ".oodlma.",
+            ".odmmaww",
+            "..odlwww",
+            "...odlaw",
+            "....odl.",
+            "...odm..",
+            "..od....",
+            ".......o",
+            ".......m",
+            "........"
+          ])
+        },
+        "宗师": {
+          dark: "#551710", mid: "#df342d", light: "#ff7b3c", accent: "#ffd08a",
+          rows: mirrorRows([
+            ".o......",
+            ".lo.....",
+            ".lmd....",
+            "..lmd...",
+            "...lmd..",
+            "....lmdo",
+            ".oodlmda",
+            ".odmmsaw",
+            "..odlsww",
+            "...odmaw",
+            "..odmdo.",
+            ".odm....",
+            "..od....",
+            ".......o",
+            ".......d",
+            "........"
+          ])
+        },
+        "王者": {
+          dark: "#083d59", mid: "#0cc1d7", light: "#80f3ff", accent: "#f5c94f", secondary: "#c58a16",
+          rows: mirrorRows([
+            "..o.....",
+            "..lo....",
+            "..lmd...",
+            "...lmd..",
+            "....lmd.",
+            ".o..smd.",
+            ".lsosma.",
+            ".odsaaww",
+            "..odawww",
+            "...oslaw",
+            "..osmdo.",
+            ".osm....",
+            "..od....",
+            ".......o",
+            ".......s",
+            "........"
+          ])
+        }
+      };
+      const icon = icons[tier] || icons["黄金"];
+      const cell = 10;
+      const fillFor = {
+        o: "#05070c",
+        d: icon.dark,
+        m: icon.mid,
+        l: icon.light,
+        a: icon.accent,
+        w: "#ffffff",
+        s: icon.secondary || icon.accent
+      };
+      const rects = icon.rows.flatMap((row, y) => (
+        row.padEnd(16, ".").slice(0, 16).split("").map((char, x) => {
+          const fill = fillFor[char];
+          if (!fill) return "";
+          const opacity = char === "o" ? 0.96 : char === "w" ? 1 : 0.98;
+          return `<rect x="${x * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${fill}" opacity="${opacity}"/>`;
+        })
+      )).join("");
+      const filterId = `pixelRankGlow${Object.keys(icons).indexOf(tier)}`;
+      return `
+        <svg viewBox="0 0 160 160" role="img" aria-label="${rank.name}" shape-rendering="crispEdges">
+          <defs>
+            <filter id="${filterId}" x="-18%" y="-18%" width="136%" height="136%">
+              <feDropShadow dx="0" dy="0" stdDeviation="2.6" flood-color="${icon.light}" flood-opacity="0.52"/>
+              <feDropShadow dx="0" dy="7" stdDeviation="5" flood-color="#000000" flood-opacity="0.48"/>
+            </filter>
+          </defs>
+          <g filter="url(#${filterId})">
+            ${rects}
+          </g>
+        </svg>
+      `;
+    }
+
+    function showRankOverlay(type, rank) {
+      clearTimeout(rankOverlayCloseTimer);
+      rankOverlayEmblem.style.setProperty("--rank-color", rank.color);
+      rankOverlayEmblem.innerHTML = buildRankEmblemSvg(rank);
+      if (type === "placement") {
+        rankOverlayTitle.textContent = `定级赛完成：${rank.name} - ${rank.score}胜点`;
+        rankOverlaySubtitle.textContent = `恭喜你完成了你的${rank.mode}定级赛。`;
+      } else {
+        rankOverlayTitle.textContent = `已晋级至${rank.name}`;
+        rankOverlaySubtitle.textContent = rank.mode;
+      }
+      rankOverlay.classList.remove("closing", "showing");
+      rankOverlay.hidden = false;
+      void rankOverlay.offsetWidth;
+      rankOverlay.classList.add("showing");
+      playConfirmSound(true);
+    }
+
+    function closeRankOverlay() {
+      clearTimeout(rankOverlayCloseTimer);
+      if (rankOverlay.hidden) {
+        rankOverlay.classList.remove("showing", "closing");
+        return;
+      }
+      const finalize = () => {
+        clearTimeout(rankOverlayCloseTimer);
+        rankOverlay.hidden = true;
+        rankOverlay.classList.remove("showing", "closing");
+        rankOverlay.removeEventListener("animationend", finalize);
+      };
+      rankOverlay.classList.remove("showing");
+      rankOverlay.classList.add("closing");
+      rankOverlay.addEventListener("animationend", finalize, { once: true });
+      rankOverlayCloseTimer = window.setTimeout(finalize, animationsEnabled ? 340 : 0);
+    }
+
+    function bestShareText(mode) {
+      const best = getBestTime(mode);
+      return best ? `${formatTime(best, 3)}秒` : "暂无";
+    }
+
+    function historyHighShareText(mode = currentMode) {
+      const high = getHistoryHighRank(mode);
+      return high ? `${high.name} ${high.score}胜点` : "暂无";
+    }
+
+    function drawCenteredSegments(ctx, segments, centerX, y) {
+      const totalWidth = segments.reduce((sum, segment) => {
+        ctx.font = segment.font;
+        return sum + ctx.measureText(segment.text).width;
+      }, 0);
+      let x = centerX - totalWidth / 2;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      segments.forEach((segment) => {
+        ctx.font = segment.font;
+        ctx.fillStyle = segment.color;
+        ctx.fillText(segment.text, x, y);
+        x += ctx.measureText(segment.text).width;
+      });
+    }
+
+    function drawFittedCenteredSegments(ctx, segments, centerX, y, maxWidth, minSize = 15) {
+      const sizedSegments = segments.map((segment) => ({ ...segment }));
+      let size = Math.max(...sizedSegments.map((segment) => segment.size));
+      const measure = () => sizedSegments.reduce((sum, segment) => {
+        ctx.font = `${segment.weight || 900} ${Math.min(segment.size, size)}px 'Microsoft YaHei', sans-serif`;
+        return sum + ctx.measureText(segment.text).width;
+      }, 0);
+
+      while (size > minSize && measure() > maxWidth) {
+        size -= 1;
+      }
+
+      drawCenteredSegments(ctx, sizedSegments.map((segment) => ({
+        text: segment.text,
+        color: segment.color,
+        font: `${segment.weight || 900} ${Math.min(segment.size, size)}px 'Microsoft YaHei', sans-serif`
+      })), centerX, y);
+    }
+
+    function drawShareRecordLine(ctx, label, value, x, y) {
+      ctx.textAlign = "left";
+      ctx.font = "800 28px 'Microsoft YaHei', sans-serif";
+      ctx.fillStyle = "#172027";
+      const labelText = `${label}：`;
+      ctx.fillText(labelText, x, y);
+      ctx.fillStyle = value === "暂无" ? "#aab2b8" : "#172027";
+      ctx.fillText(value, x + ctx.measureText(labelText).width, y);
+    }
+
+    function shareCurrentRank(mode) {
+      const history = getRankHistory(mode);
+      return history.length >= 5 ? getRank(averageMs(history), mode) : null;
+    }
+
+    function drawCenteredPlainText(ctx, text, x, y, font, color = "#172027") {
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = font;
+      ctx.fillStyle = color;
+      ctx.fillText(text, x, y);
+    }
+
+    function drawShareRankCell(ctx, rank, x, y, width) {
+      if (!rank) {
+        drawCenteredPlainText(ctx, "暂无", x + width / 2, y, "800 20px 'Microsoft YaHei', sans-serif", "#aab2b8");
+        return;
+      }
+      drawFittedCenteredSegments(ctx, [
+        { text: `${rank.name} `, color: rank.color, size: 20, weight: 900 },
+        { text: `${rank.score}胜点`, color: "#172027", size: 20, weight: 900 }
+      ], x + width / 2, y, width - 18);
+    }
+
+    function drawShareSummaryTable(ctx, x, y, width) {
+      const rowHeight = 54;
+      const columns = [96, 252, 252, 160];
+      const headers = ["模式", "当前段位", "历史最高", "最快用时"];
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "rgba(23, 32, 39, 0.2)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.fillRect(x, y, width, rowHeight * 4);
+      ctx.strokeRect(x, y, width, rowHeight * 4);
+
+      for (let row = 0; row < 4; row += 1) {
+        if (row === 0 || row % 2 === 0) {
+          ctx.fillStyle = row === 0 ? "rgba(23, 32, 39, 0.08)" : "rgba(23, 32, 39, 0.045)";
+          ctx.fillRect(x, y + row * rowHeight, width, rowHeight);
+        }
+        ctx.beginPath();
+        ctx.moveTo(x, y + row * rowHeight);
+        ctx.lineTo(x + width, y + row * rowHeight);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(x, y + rowHeight * 4);
+      ctx.lineTo(x + width, y + rowHeight * 4);
+      ctx.stroke();
+
+      let colX = x;
+      columns.slice(0, -1).forEach((colWidth) => {
+        colX += colWidth;
+        ctx.beginPath();
+        ctx.moveTo(colX, y);
+        ctx.lineTo(colX, y + rowHeight * 4);
+        ctx.stroke();
+      });
+
+      colX = x;
+      headers.forEach((header, index) => {
+        drawCenteredPlainText(ctx, header, colX + columns[index] / 2, y + 35, "900 19px 'Microsoft YaHei', sans-serif");
+        colX += columns[index];
+      });
+
+      modeOrder.forEach((mode, rowIndex) => {
+        const rowY = y + rowHeight * (rowIndex + 1) + 35;
+        let cellX = x;
+        drawCenteredPlainText(ctx, modeLabels[mode], cellX + columns[0] / 2, rowY, "900 21px 'Microsoft YaHei', sans-serif");
+        cellX += columns[0];
+        drawShareRankCell(ctx, shareCurrentRank(mode), cellX, rowY, columns[1]);
+        cellX += columns[1];
+        drawShareRankCell(ctx, getHistoryHighRank(mode), cellX, rowY, columns[2]);
+        cellX += columns[2];
+        const best = getBestTime(mode);
+        drawCenteredPlainText(
+          ctx,
+          best ? `${formatTime(best, 3)}秒` : "暂无",
+          cellX + columns[3] / 2,
+          rowY,
+          "900 20px 'Microsoft YaHei', sans-serif",
+          best ? "#172027" : "#aab2b8"
+        );
+      });
+    }
+
+    function drawShareCellNumber(ctx, text, centerX, centerY, font, color) {
+      const scratch = document.createElement("canvas");
+      scratch.width = 180;
+      scratch.height = 180;
+      const scratchCtx = scratch.getContext("2d");
+      scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
+      scratchCtx.font = font;
+      scratchCtx.textAlign = "center";
+      scratchCtx.textBaseline = "middle";
+      scratchCtx.fillStyle = color;
+      scratchCtx.fillText(text, scratch.width / 2, scratch.height / 2);
+
+      const pixels = scratchCtx.getImageData(0, 0, scratch.width, scratch.height).data;
+      let minX = scratch.width;
+      let minY = scratch.height;
+      let maxX = -1;
+      let maxY = -1;
+      for (let row = 0; row < scratch.height; row += 1) {
+        for (let col = 0; col < scratch.width; col += 1) {
+          const alpha = pixels[(row * scratch.width + col) * 4 + 3];
+          if (alpha > 8) {
+            minX = Math.min(minX, col);
+            minY = Math.min(minY, row);
+            maxX = Math.max(maxX, col);
+            maxY = Math.max(maxY, row);
+          }
+        }
+      }
+
+      if (maxX < minX || maxY < minY) {
+        ctx.font = font;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = color;
+        ctx.fillText(text, centerX, centerY);
+        return;
+      }
+
+      const sourceWidth = maxX - minX + 1;
+      const sourceHeight = maxY - minY + 1;
+      ctx.drawImage(
+        scratch,
+        minX,
+        minY,
+        sourceWidth,
+        sourceHeight,
+        centerX - sourceWidth / 2,
+        centerY - sourceHeight / 2,
+        sourceWidth,
+        sourceHeight
+      );
+    }
+
+    function drawShareBoard(ctx, x, y, size) {
+      const cellSize = size / 5;
+      currentBoardCells.forEach((cell, index) => {
+        const col = index % 5;
+        const row = Math.floor(index / 5);
+        const cellX = x + col * cellSize;
+        const cellY = y + row * cellSize;
+        ctx.fillStyle = cell.bg;
+        ctx.fillRect(cellX, cellY, cellSize, cellSize);
+        drawShareCellNumber(
+          ctx,
+          String(cell.number),
+          cellX + cellSize / 2,
+          cellY + cellSize / 2,
+          "900 62px 'Microsoft YaHei', sans-serif",
+          cell.textColor
+        );
+      });
+
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.52)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let index = 0; index <= 5; index += 1) {
+        const offset = x + index * cellSize;
+        ctx.moveTo(offset, y);
+        ctx.lineTo(offset, y + size);
+        const yOffset = y + index * cellSize;
+        ctx.moveTo(x, yOffset);
+        ctx.lineTo(x + size, yOffset);
+      }
+      ctx.stroke();
+    }
+
+    function drawQrCode(ctx, matrix, x, y, size) {
+      const quiet = 4;
+      const moduleCount = matrix.length + quiet * 2;
+      const moduleSize = size / moduleCount;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = "#111";
+      matrix.forEach((row, rowIndex) => {
+        row.forEach((dark, colIndex) => {
+          if (dark) {
+            ctx.fillRect(
+              x + (colIndex + quiet) * moduleSize,
+              y + (rowIndex + quiet) * moduleSize,
+              Math.ceil(moduleSize),
+              Math.ceil(moduleSize)
+            );
+          }
+        });
+      });
+    }
+
+    function createQrMatrix(text) {
+      const version = 4;
+      const size = version * 4 + 17;
+      const dataCodewords = 80;
+      const eccCodewords = 20;
+      const modules = Array.from({ length: size }, () => Array(size).fill(false));
+      const reserved = Array.from({ length: size }, () => Array(size).fill(false));
+
+      const setFunction = (x, y, dark) => {
+        if (x < 0 || y < 0 || x >= size || y >= size) return;
+        modules[y][x] = dark;
+        reserved[y][x] = true;
+      };
+
+      const addFinder = (x, y) => {
+        for (let dy = -1; dy <= 7; dy += 1) {
+          for (let dx = -1; dx <= 7; dx += 1) {
+            const xx = x + dx;
+            const yy = y + dy;
+            const dark = dx >= 0 && dx <= 6 && dy >= 0 && dy <= 6
+              && (dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
+            setFunction(xx, yy, dark);
+          }
+        }
+      };
+
+      const addAlignment = (cx, cy) => {
+        for (let dy = -2; dy <= 2; dy += 1) {
+          for (let dx = -2; dx <= 2; dx += 1) {
+            setFunction(cx + dx, cy + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+          }
+        }
+      };
+
+      addFinder(0, 0);
+      addFinder(size - 7, 0);
+      addFinder(0, size - 7);
+      addAlignment(26, 26);
+      for (let index = 8; index < size - 8; index += 1) {
+        setFunction(index, 6, index % 2 === 0);
+        setFunction(6, index, index % 2 === 0);
+      }
+      setFunction(8, version * 4 + 9, true);
+
+      const format = 0b111011111000100;
+      const setFormat = () => {
+        for (let index = 0; index <= 5; index += 1) setFunction(8, index, ((format >> index) & 1) === 1);
+        setFunction(8, 7, ((format >> 6) & 1) === 1);
+        setFunction(8, 8, ((format >> 7) & 1) === 1);
+        setFunction(7, 8, ((format >> 8) & 1) === 1);
+        for (let index = 9; index < 15; index += 1) setFunction(14 - index, 8, ((format >> index) & 1) === 1);
+        for (let index = 0; index < 8; index += 1) setFunction(size - 1 - index, 8, ((format >> index) & 1) === 1);
+        for (let index = 8; index < 15; index += 1) setFunction(8, size - 15 + index, ((format >> index) & 1) === 1);
+      };
+      setFormat();
+
+      const bits = [];
+      const appendBits = (value, length) => {
+        for (let index = length - 1; index >= 0; index -= 1) {
+          bits.push((value >>> index) & 1);
+        }
+      };
+      const bytes = Array.from(text, (char) => char.charCodeAt(0));
+      appendBits(0b0100, 4);
+      appendBits(bytes.length, 8);
+      bytes.forEach((byte) => appendBits(byte, 8));
+      const capacityBits = dataCodewords * 8;
+      appendBits(0, Math.min(4, capacityBits - bits.length));
+      while (bits.length % 8) bits.push(0);
+      const data = [];
+      for (let index = 0; index < bits.length; index += 8) {
+        data.push(bits.slice(index, index + 8).reduce((value, bit) => (value << 1) | bit, 0));
+      }
+      for (let pad = 0; data.length < dataCodewords; pad += 1) {
+        data.push(pad % 2 === 0 ? 0xec : 0x11);
+      }
+
+      const exp = Array(512).fill(0);
+      const log = Array(256).fill(0);
+      let value = 1;
+      for (let index = 0; index < 255; index += 1) {
+        exp[index] = value;
+        log[value] = index;
+        value <<= 1;
+        if (value & 0x100) value ^= 0x11d;
+      }
+      for (let index = 255; index < exp.length; index += 1) exp[index] = exp[index - 255];
+      const multiply = (a, b) => (a && b ? exp[log[a] + log[b]] : 0);
+      const divisor = (() => {
+        const result = Array(eccCodewords).fill(0);
+        result[eccCodewords - 1] = 1;
+        let root = 1;
+        for (let index = 0; index < eccCodewords; index += 1) {
+          for (let coef = 0; coef < result.length; coef += 1) {
+            result[coef] = multiply(result[coef], root);
+            if (coef + 1 < result.length) result[coef] ^= result[coef + 1];
+          }
+          root = multiply(root, 2);
+        }
+        return result;
+      })();
+      const ecc = Array(eccCodewords).fill(0);
+      data.forEach((byte) => {
+        const factor = byte ^ ecc.shift();
+        ecc.push(0);
+        divisor.forEach((coef, index) => {
+          ecc[index] ^= multiply(coef, factor);
+        });
+      });
+
+      const codewords = data.concat(ecc);
+      const dataBits = [];
+      codewords.forEach((byte) => appendBitsTo(dataBits, byte, 8));
+      let bitIndex = 0;
+      let upward = true;
+      for (let right = size - 1; right >= 1; right -= 2) {
+        if (right === 6) right -= 1;
+        for (let vert = 0; vert < size; vert += 1) {
+          const y = upward ? size - 1 - vert : vert;
+          for (let dx = 0; dx < 2; dx += 1) {
+            const x = right - dx;
+            if (!reserved[y][x]) {
+              let bit = bitIndex < dataBits.length ? dataBits[bitIndex] : 0;
+              if ((x + y) % 2 === 0) bit ^= 1;
+              modules[y][x] = Boolean(bit);
+              bitIndex += 1;
+            }
+          }
+        }
+        upward = !upward;
+      }
+      setFormat();
+      return modules;
+    }
+
+    function appendBitsTo(target, value, length) {
+      for (let index = length - 1; index >= 0; index -= 1) {
+        target.push((value >>> index) & 1);
+      }
+    }
+
+    function createShareImageDataUrl() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 900;
+      canvas.height = 1320;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#f7f8f6";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawCenteredPlainText(ctx, "舒尔特表格", 450, 66, "900 30px 'Microsoft YaHei', sans-serif");
+      drawCenteredPlainText(ctx, `${modeLabels[currentMode]}模式`, 450, 118, "900 40px 'Microsoft YaHei', sans-serif");
+      drawCenteredPlainText(ctx, `用时：${formatTime(elapsed, 3)}秒`, 450, 188, "900 58px 'Microsoft YaHei', sans-serif");
+
+      drawShareBoard(ctx, 170, 240, 560);
+      drawShareSummaryTable(ctx, 70, 860, 760);
+      drawQrCode(ctx, createQrMatrix(shareUrl), 360, 1110, 180);
+      return canvas.toDataURL("image/png");
+    }
+
+    function dataUrlToBlob(dataUrl) {
+      const [meta, data] = dataUrl.split(",");
+      const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/png";
+      const binary = atob(data);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      return new Blob([bytes], { type: mime });
+    }
+
+    function isMobileShareDevice() {
+      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
+    }
+
+    function canShareImageFiles() {
+      if (!navigator.canShare || typeof File !== "function") return false;
+      try {
+        const probe = new File([new Uint8Array([137, 80, 78, 71])], "share.png", { type: "image/png" });
+        return navigator.canShare({ files: [probe] });
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function downloadShareImage(blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "舒尔特表格成绩.png";
+      link.rel = "noopener";
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }
+
+    function prepareShareImage() {
+      const dataUrl = createShareImageDataUrl();
+      const blob = dataUrlToBlob(dataUrl);
+      if (!blob || blob.size < 1024) {
+        throw new Error("Share image generation failed.");
+      }
+      latestShareDataUrl = dataUrl;
+      latestShareBlob = blob;
+      return { dataUrl, blob };
+    }
+
+    function shareWithTimeout(payload, timeout = 3200) {
+      if (!navigator.share) {
+        return Promise.reject(new Error("Share unavailable."));
+      }
+      let timeoutId = 0;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error("share-timeout")), timeout);
+      });
+      return Promise.race([
+        navigator.share(payload).finally(() => window.clearTimeout(timeoutId)),
+        timeoutPromise
+      ]);
+    }
+
+    function closeSharePreview() {
+      sharePreviewOverlay.hidden = true;
+      sharePreviewImage.removeAttribute("src");
+      document.body.classList.remove("modal-open");
+    }
+
+    function openSharePreview(dataUrl, blob = null) {
+      latestShareDataUrl = dataUrl;
+      latestShareBlob = blob || latestShareBlob || dataUrlToBlob(dataUrl);
+      sharePreviewImage.src = dataUrl;
+      sharePreviewOverlay.hidden = false;
+      document.body.classList.add("modal-open");
+    }
+
+    async function shareResultImage() {
+      if (shareInProgress) return;
+      shareInProgress = true;
+      shareResultBtn.disabled = true;
+      peekBtn.disabled = true;
+      try {
+        const mobile = isMobileShareDevice();
+        const fileShareSupported = mobile && canShareImageFiles();
+        if (mobile && navigator.share && !fileShareSupported) {
+          try {
+            const started = performance.now();
+            await shareWithTimeout({
+              title: "舒尔特表格",
+              text: "我的舒尔特表格测试结果",
+              url: shareUrl
+            }, 2200);
+            if (performance.now() - started > 350) return;
+          } catch (error) {
+            if (error?.name === "AbortError") return;
+          }
+        }
+
+        const { dataUrl, blob } = prepareShareImage();
+        const file = typeof File === "function"
+          ? new File([blob], "舒尔特表格成绩.png", { type: "image/png" })
+          : null;
+        const canShareFile = Boolean(
+          file
+          && fileShareSupported
+          && navigator.canShare({ files: [file] })
+        );
+
+        if (canShareFile) {
+          try {
+            await shareWithTimeout({
+              files: [file],
+              title: "舒尔特表格",
+              text: "我的舒尔特表格测试结果"
+            }, 5200);
+            return;
+          } catch (error) {
+            if (error?.name === "AbortError") return;
+          }
+        }
+
+        if (mobile) {
+          openSharePreview(dataUrl, blob);
+          return;
+        }
+
+        downloadShareImage(blob);
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+        try {
+          const prepared = latestShareDataUrl && latestShareBlob
+            ? { dataUrl: latestShareDataUrl, blob: latestShareBlob }
+            : prepareShareImage();
+          openSharePreview(prepared.dataUrl, prepared.blob);
+        } catch (previewError) {
+          alert("分享图片生成失败，请刷新页面后重试。");
+        }
+      } finally {
+        shareInProgress = false;
+        shareResultBtn.disabled = false;
+        peekBtn.disabled = false;
+      }
     }
 
     function finishGame() {
       stopTimer();
       clearHint();
-      if (currentMode !== "intro" && lastCorrectCell) {
-        lastCorrectCell.classList.remove("done");
-      }
+      document.querySelectorAll(".cell").forEach((cell) => {
+        cell.classList.remove("done", "miss", "next", "hint-flash", "pressing");
+      });
+      introPressedCell = null;
+      introPressedByKey = false;
+      introReleaseCommit = false;
       board.classList.add("finished");
-      timeEl.textContent = formatTime(elapsed, 3);
-      playFinishSound();
+      spawnCompletionFallParticles();
+      timeEl.textContent = formatSecondsLabel(elapsed);
+      setTimeout(playFinishSound, 180);
       renderResults();
+    }
+
+    function spawnCompletionFallParticles() {
+      if (!particleLayer || !animationsEnabled) return;
+      const boardRect = board.getBoundingClientRect();
+      const palette = currentMode === "normal"
+        ? currentBoardCells.map((cell) => darkenHex(cell.bg, 0.08))
+        : ["#000000"];
+      const emitters = [
+        { x: boardRect.width * 0.02, y: boardRect.height * 0.5, side: 1 },
+        { x: boardRect.width * 0.98, y: boardRect.height * 0.5, side: -1 }
+      ];
+
+      emitters.forEach((emitter) => {
+        for (let index = 0; index < 74; index += 1) {
+          const particle = document.createElement("span");
+          const size = Math.max(6, boardRect.width * (0.012 + Math.random() * 0.014));
+          const launchDistance = boardRect.width * (0.42 + Math.random() * 0.52);
+          const angle = (-66 + Math.random() * 58) * Math.PI / 180;
+          const launchX = emitter.side * Math.cos(angle) * launchDistance;
+          const launchY = Math.sin(angle) * launchDistance;
+          const driftX = emitter.side * boardRect.width * (0.02 + Math.random() * 0.5) + (Math.random() - 0.5) * boardRect.width * 0.72;
+          const finalY = boardRect.height * (0.54 + Math.random() * 0.56);
+          const gravity = finalY - launchY;
+          const spin = emitter.side * (360 + Math.random() * 720) + (Math.random() - 0.5) * 260;
+          const alpha = currentMode === "normal" ? 0.92 : 0.86;
+          const color = palette[Math.floor(Math.random() * palette.length)];
+          const duration = 1900 + Math.random() * 940;
+          const delay = index * 7 + Math.random() * 110;
+          const phase = Math.random() * Math.PI * 2;
+          const flutter = boardRect.width * (0.035 + Math.random() * 0.085);
+          particle.className = "confetti-particle";
+          particle.style.setProperty("--x", `${emitter.x - size / 2}px`);
+          particle.style.setProperty("--y", `${emitter.y - size / 2}px`);
+          particle.style.setProperty("--size", `${size}px`);
+          particle.style.setProperty("--glow", `${size * 0.7}px`);
+          particle.style.setProperty("--color", `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`);
+          particleLayer.append(particle);
+          const times = [0, 0.1, 0.22, 0.36, 0.52, 0.68, 0.84, 1];
+          const frames = times.map((time) => {
+            const launchEase = 1 - Math.exp(-5.2 * time);
+            const x = launchX * launchEase + driftX * time * time + Math.sin(phase + time * Math.PI * 3.4) * flutter * time;
+            const y = launchY * Math.sin(Math.min(time / 0.34, 1) * Math.PI / 2) + gravity * time * time;
+            const scale = Math.max(0.46, 1 - time * 0.34);
+            const opacity = time < 0.08 ? time / 0.08 : (time > 0.84 ? Math.max(0, (1 - time) / 0.16) : 1);
+            return {
+              opacity,
+              transform: `translate(${x}px, ${y}px) rotate(${spin * time + Math.sin(phase + time * 8) * 26}deg) scale(${scale})`
+            };
+          });
+          const animation = particle.animate(frames, {
+            duration,
+            delay,
+            easing: "linear",
+            fill: "forwards"
+          });
+          animation.addEventListener("finish", () => particle.remove(), { once: true });
+        }
+      });
+    }
+
+    function burstParticles(cell) {
+      if (!particleLayer || !animationsEnabled) return;
+      const cellRect = cell.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const centerX = cellRect.left - boardRect.left + cellRect.width / 2;
+      const centerY = cellRect.top - boardRect.top + cellRect.height / 2;
+      const sizeBase = Math.max(8, cellRect.width * 0.09);
+      const cellBg = cell.style.getPropertyValue("--cell-bg").trim();
+      const particleBase = currentMode === "normal"
+        ? complementHex(cellBg)
+        : "#000000";
+      for (let index = 0; index < 20; index += 1) {
+        const particle = document.createElement("span");
+        const angle = Math.random() * Math.PI * 2;
+        const distance = cellRect.width * (0.46 + Math.random() * 0.72) * 0.8;
+        const size = sizeBase * (0.72 + Math.random() * 0.72);
+        const alpha = 0.78 + Math.random() * 0.2;
+        particle.className = "particle";
+        particle.style.setProperty("--x", `${centerX - size / 2}px`);
+        particle.style.setProperty("--y", `${centerY - size / 2}px`);
+        particle.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+        particle.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+        particle.style.setProperty("--size", `${size}px`);
+        particle.style.setProperty("--glow", `${size * 1.8}px`);
+        particle.style.setProperty("--color", `${particleBase}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`);
+        particle.addEventListener("animationend", () => particle.remove(), { once: true });
+        particleLayer.append(particle);
+      }
+    }
+
+    function canPressCell(cell) {
+      return cell && !board.classList.contains("finished") && !cell.classList.contains("done");
+    }
+
+    function beginIntroPress(cell, byKey = false) {
+      if (!canPressCell(cell)) return;
+      if (introPressedCell && introPressedCell !== cell) {
+        introPressedCell.classList.remove("pressing");
+      }
+      introPressedCell = cell;
+      introPressedByKey = byKey;
+      cell.classList.remove("pressing");
+      void cell.offsetWidth;
+      cell.classList.add("pressing");
+      const clearPressing = () => {
+        cell.classList.remove("pressing");
+        if (introPressedCell === cell) {
+          introPressedCell = null;
+          introPressedByKey = false;
+        }
+      };
+      cell.querySelector(".cell-number")?.addEventListener("animationend", clearPressing, { once: true });
+      window.setTimeout(clearPressing, animationsEnabled ? 260 : 0);
+    }
+
+    function finishIntroPress(releaseCell, shouldCommit = true) {
+      const pressed = introPressedCell;
+      if (!pressed) return;
+      if (shouldCommit && releaseCell === pressed) {
+        commitIntroCell(pressed);
+      }
+    }
+
+    function commitIntroCell(cell, options = {}) {
+      if (!cell) return;
+      const keepPressing = Boolean(options.keepPressing);
+      if (introPressedCell && !keepPressing) {
+        introPressedCell.classList.remove("pressing");
+      }
+      if (!keepPressing) {
+        introPressedCell = null;
+        introPressedByKey = false;
+      }
+      if (canPressCell(cell)) {
+        introReleaseCommit = true;
+        activateCell(cell);
+        introReleaseCommit = false;
+      }
+    }
+
+    function cancelIntroPress(cell) {
+      return;
     }
 
     function activateCell(cell) {
       if (!cell || board.classList.contains("finished")) return;
+      if (currentMode === "intro" && !introReleaseCommit) return;
       if (cell.classList.contains("done")) return;
       const value = Number(cell.dataset.number);
 
       if (value !== nextNumber) {
         errorCount += 1;
         splitTimes.push({ number: value, ms: elapsed - lastSplitMs, wrong: true });
+        updateProgressPanel();
+        cell.blur();
         playWrongSound();
+        if (!animationsEnabled) return;
         cell.classList.remove("miss");
         void cell.offsetWidth;
         cell.classList.add("miss");
@@ -1191,28 +3404,45 @@
       }
 
       clearHint();
-      if (currentMode !== "intro" && lastCorrectCell) {
-        lastCorrectCell.classList.remove("done");
-      }
 
       const nowMs = elapsed;
       splitTimes.push({ number: value, ms: nowMs - lastSplitMs });
       lastSplitMs = nowMs;
       cell.classList.add("done");
+      cell.blur();
       lastCorrectCell = cell;
+      burstParticles(cell);
+      if (currentMode === "intro") {
+        cell.classList.add("vanished");
+      } else {
+        setTimeout(() => {
+          if (!board.classList.contains("finished")) {
+            cell.classList.remove("done");
+          }
+        }, 260);
+      }
+      if (currentMode === "intro") {
+        playIntroClearSound();
+      } else {
+        playPianoNote(value, 0.8);
+      }
       nextNumber += 1;
 
       if (nextNumber > 25) {
         finishGame();
         return;
       }
-
-      playConfirmSound();
+      updateProgressPanel();
     }
 
     function handleCellMouseDown(event) {
-      if (!shortcutMatchesMouse(shortcuts.cellClick, event)) return;
+      if (!shortcutMatchesMouse(cellClickShortcut, event)) return;
       event.preventDefault();
+      beginIntroPress(event.currentTarget);
+      if (currentMode === "intro") {
+        commitIntroCell(event.currentTarget, { keepPressing: true });
+        return;
+      }
       activateCell(event.currentTarget);
     }
 
@@ -1221,34 +3451,48 @@
       const palette = shuffle(colors);
       board.innerHTML = "";
       board.classList.remove("finished");
+      currentBoardCells = [];
+      particleLayer = document.createElement("div");
+      particleLayer.className = "particle-layer";
+      board.append(particleLayer);
 
       numbers.forEach((number, index) => {
         const cell = document.createElement("button");
+        const label = document.createElement("span");
         const bg = currentMode === "normal" ? palette[index] : "#ffffff";
-        const x = index % 5;
-        const y = Math.floor(index / 5);
+        const textColor = currentMode === "normal" ? readableTextColor(bg) : "#111111";
         cell.className = "cell";
         cell.type = "button";
         cell.dataset.number = number;
-        cell.style.setProperty("--x", x);
-        cell.style.setProperty("--y", y);
+        cell.style.setProperty("--cell-bg", bg);
         cell.style.backgroundColor = bg;
-        cell.style.color = currentMode === "normal" ? readableTextColor(bg) : "#111111";
+        cell.style.color = textColor;
         cell.style.setProperty("--hover-ring", currentMode === "normal" ? hoverRingColor(bg) : "rgb(40, 40, 40)");
-        cell.textContent = number;
+        label.className = "cell-number";
+        label.textContent = number;
+        cell.append(label);
         cell.setAttribute("aria-label", `数字 ${number}`);
+        currentBoardCells.push({ number, bg, textColor });
         cell.addEventListener("pointerenter", () => {
           activeCell = cell;
         });
         cell.addEventListener("pointerleave", () => {
           if (activeCell === cell) activeCell = null;
+          if (currentMode === "intro") {
+            cancelIntroPress(cell);
+          }
         });
         cell.addEventListener("focus", () => {
           activeCell = cell;
         });
         cell.addEventListener("mousedown", handleCellMouseDown);
+        cell.addEventListener("click", (event) => {
+          if (currentMode === "intro") {
+            event.preventDefault();
+          }
+        });
         cell.addEventListener("contextmenu", (event) => {
-          if (shortcuts.cellClick.type === "mouse" && shortcuts.cellClick.button === 2) {
+          if (cellClickShortcut.type === "mouse" && cellClickShortcut.button === 2) {
             event.preventDefault();
           }
         });
@@ -1262,36 +3506,49 @@
       if (withSound) {
         playRestartSound();
       }
+      shareInProgress = false;
+      shareResultBtn.disabled = false;
+      peekBtn.disabled = false;
+      restartBtn.disabled = false;
+      closeSharePreview();
       stopTimer();
       nextNumber = 1;
       elapsed = 0;
       lastSplitMs = 0;
       splitTimes = [];
       errorCount = 0;
+      usedHint = false;
+      lastResultRank = null;
       lastCorrectCell = null;
+      introPressedCell = null;
+      introPressedByKey = false;
+      introReleaseCommit = false;
       activeCell = null;
       clearHint();
-      timeEl.textContent = "00.000";
-      resultPanel.hidden = true;
+      clearTimeout(rankOverlayTimer);
+      clearTimeout(rankOverlayCloseTimer);
+      closeRankOverlay();
+      timeEl.textContent = "0.000 秒";
+      resultPanel.hidden = false;
+      splitTable.hidden = true;
       splitRows.innerHTML = "";
+      shareResultBtn.hidden = true;
+      renderBottomActions(false);
       buildBoard();
+      updateProgressPanel();
       startTimer();
     }
 
     function setBoardSize(value) {
       document.documentElement.style.setProperty("--board-size", `${value}px`);
-      sizeValue.textContent = value;
+      sizeValue.textContent = `${value}px`;
       localStorage.setItem(sizeKey, String(value));
-      updateBoardRenderSize();
+      requestAnimationFrame(updateBoardRenderSize);
     }
 
     function updateBoardRenderSize() {
-      const desired = Number(sizeRange.value);
-      const available = Math.max(240, trainer.clientWidth);
-      const renderSize = Math.max(240, Math.floor(Math.min(desired, available) / 5) * 5);
-      const cellSize = renderSize / 5;
-      document.documentElement.style.setProperty("--board-render-size", `${renderSize}px`);
-      document.documentElement.style.setProperty("--grid-cell-size", `${cellSize}px`);
+      const boardWidth = board.getBoundingClientRect().width || Math.min(Number(sizeRange.value), trainer.clientWidth);
+      const cellSize = Math.max(44, boardWidth / 5);
       document.documentElement.style.setProperty("--cell-font", `${cellSize / 2}px`);
     }
 
@@ -1301,16 +3558,122 @@
       localStorage.setItem(volumeKey, String(value));
     }
 
+    function setAnimations(enabled, shouldSave = true) {
+      animationsEnabled = Boolean(enabled);
+      document.documentElement.classList.toggle("no-motion", !animationsEnabled);
+      animationToggle.setAttribute("aria-pressed", animationsEnabled ? "true" : "false");
+      animationToggle.setAttribute("aria-label", animationsEnabled ? "动画开启" : "动画关闭");
+      animationToggle.textContent = animationsEnabled ? "开启" : "关闭";
+      if (!animationsEnabled && particleLayer) {
+        particleLayer.replaceChildren();
+      }
+      if (shouldSave) {
+        localStorage.setItem(animationKey, animationsEnabled ? "1" : "0");
+      }
+    }
+
+    function renderActionVisibility(shouldSave = true) {
+      renderBottomActions(board.classList.contains("finished"));
+      if (shouldSave) {
+        localStorage.setItem(visibilityKey, JSON.stringify(actionVisibility));
+      }
+      visibilityButtons.forEach((button) => {
+        const visible = actionVisibility[button.dataset.action] !== false;
+        button.textContent = visible ? "显示" : "隐藏";
+        button.setAttribute("aria-pressed", visible ? "true" : "false");
+      });
+    }
+
+    function shareActionText() {
+      return window.matchMedia("(max-width: 768px)").matches ? "分享" : "保存";
+    }
+
+    function renderBottomActions(isComplete = false) {
+      restartBtn.hidden = !actionVisibility.refresh;
+      peekBtn.hidden = isComplete ? false : !actionVisibility.hint;
+      peekBtn.textContent = isComplete ? shareActionText() : "提示";
+      peekBtn.classList.toggle("hint-button", !isComplete);
+      peekBtn.classList.toggle("bottom-share-button", isComplete);
+      if (isComplete) {
+        peekBtn.removeAttribute("aria-keyshortcuts");
+      } else {
+        peekBtn.setAttribute("aria-keyshortcuts", "Shift");
+      }
+      const visibleCount = [!restartBtn.hidden, !peekBtn.hidden].filter(Boolean).length;
+      restartBtn.parentElement.hidden = visibleCount === 0;
+      restartBtn.parentElement.classList.toggle("single", visibleCount === 1);
+    }
+
+    function renderArchives() {
+      archiveSelectButtons.forEach((button) => {
+        const slot = Number(button.dataset.slot);
+        const isCurrent = slot === currentArchiveSlot;
+        button.textContent = isCurrent ? "当前" : "选择";
+        button.classList.toggle("current", isCurrent);
+      });
+      archiveDeleteButtons.forEach((button) => {
+        const slot = Number(button.dataset.slot);
+        button.textContent = pendingArchiveDelete === slot ? "点击确认" : "删除";
+      });
+    }
+
+    function selectArchive(slot) {
+      currentArchiveSlot = slot;
+      pendingArchiveDelete = null;
+      localStorage.setItem(archiveKey, String(currentArchiveSlot));
+      renderArchives();
+      updateProgressPanel();
+    }
+
+    function clearArchive(slot) {
+      ["intro", "simple", "normal"].forEach((mode) => {
+        localStorage.removeItem(`${archiveBestKeyPrefix}-${slot}-${mode}`);
+        localStorage.removeItem(`${rankHistoryKeyPrefix}-${slot}-${mode}`);
+        localStorage.removeItem(`${rankHighKeyPrefix}-${slot}-${mode}`);
+        if (slot === 1) {
+          localStorage.removeItem(`${bestKeyPrefix}-${mode}`);
+        }
+      });
+      if (slot === 1) {
+        localStorage.removeItem(legacyBestKey);
+      }
+      pendingArchiveDelete = null;
+      renderArchives();
+      updateProgressPanel();
+    }
+
     function renderModeButtons() {
       modeButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.mode === currentMode);
       });
     }
 
+    function renderTopModeSwitcher() {
+      const index = modeOrder.indexOf(currentMode);
+      topModeName.textContent = modeLabels[currentMode];
+      const hidePrev = index <= 0;
+      const hideNext = index >= modeOrder.length - 1;
+      modePrevBtn.classList.toggle("is-hidden", hidePrev);
+      modeNextBtn.classList.toggle("is-hidden", hideNext);
+      modePrevBtn.tabIndex = hidePrev ? -1 : 0;
+      modeNextBtn.tabIndex = hideNext ? -1 : 0;
+      modePrevBtn.setAttribute("aria-hidden", hidePrev ? "true" : "false");
+      modeNextBtn.setAttribute("aria-hidden", hideNext ? "true" : "false");
+    }
+
+    function stepMode(direction) {
+      const index = modeOrder.indexOf(currentMode);
+      const nextMode = modeOrder[index + direction];
+      if (!nextMode) return;
+      playModeSwitchSound(nextMode);
+      setMode(nextMode);
+    }
+
     function setMode(mode, shouldReset = true) {
       currentMode = mode;
       localStorage.setItem(modeKey, mode);
       renderModeButtons();
+      renderTopModeSwitcher();
       if (shouldReset) {
         resetGame();
       }
@@ -1319,6 +3682,9 @@
     function loadSettings() {
       const savedSize = localStorage.getItem(sizeKey);
       const savedVolume = localStorage.getItem(volumeKey);
+      const savedAnimations = localStorage.getItem(animationKey);
+      const savedVisibility = localStorage.getItem(visibilityKey);
+      const savedArchive = Number(localStorage.getItem(archiveKey) || 1);
       const savedMode = localStorage.getItem(modeKey);
       if (savedSize) {
         const normalizedSize = savedSize === "580"
@@ -1329,48 +3695,205 @@
       if (savedVolume) {
         volumeRange.value = savedVolume;
       }
+      if (savedAnimations !== null) {
+        animationsEnabled = savedAnimations === "1";
+      }
+      if (savedVisibility) {
+        try {
+          const parsed = JSON.parse(savedVisibility);
+          actionVisibility = {
+            ...actionVisibility,
+            refresh: parsed.refresh !== false,
+            hint: parsed.hint !== false
+          };
+        } catch {
+          localStorage.removeItem(visibilityKey);
+        }
+      }
       if (["intro", "simple", "normal"].includes(savedMode)) {
         currentMode = savedMode;
       }
+      if ([1, 2, 3].includes(savedArchive)) {
+        currentArchiveSlot = savedArchive;
+      }
     }
 
-    function toggleModal(panel, forceOpen, focusTarget) {
+    function toggleModal(panel, forceOpen, focusTarget, soundKind) {
       const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : panel.hidden;
+      if (shouldOpen && panel.hidden && soundKind) {
+        playPanelOpenSound(soundKind);
+      }
+      if (!shouldOpen && !panel.hidden && soundKind) {
+        playPanelCloseSound(soundKind);
+      }
       panel.hidden = !shouldOpen;
+      document.body.classList.toggle("modal-open", !settingsPanel.hidden || !infoPanel.hidden);
+      if (shouldOpen) {
+        panel.querySelector(".modal-panel")?.scrollTo({ top: 0, left: 0 });
+      }
       if (shouldOpen && focusTarget) {
         focusTarget.focus();
       }
     }
 
+    function preventBackgroundScroll(event) {
+      if (!document.body.classList.contains("modal-open")) return;
+      const scrollablePanel = event.target.closest?.("#infoPanel .modal-panel");
+      if (scrollablePanel && !infoPanel.hidden) return;
+      event.preventDefault();
+    }
+
     restartBtn.addEventListener("click", () => resetGame(true));
+    shareResultBtn.addEventListener("click", shareResultImage);
+    sharePreviewCloseBtn.addEventListener("click", closeSharePreview);
+    sharePreviewOverlay.addEventListener("click", (event) => {
+      if (event.target === sharePreviewOverlay) closeSharePreview();
+    });
+    sharePreviewSaveBtn.addEventListener("click", () => {
+      const blob = latestShareBlob || (latestShareDataUrl ? dataUrlToBlob(latestShareDataUrl) : null);
+      if (blob) downloadShareImage(blob);
+    });
+    sharePreviewNativeBtn.addEventListener("click", async () => {
+      if (shareInProgress || !navigator.share) return;
+      shareInProgress = true;
+      sharePreviewNativeBtn.disabled = true;
+      try {
+        const blob = latestShareBlob || (latestShareDataUrl ? dataUrlToBlob(latestShareDataUrl) : null);
+        const file = blob && typeof File === "function"
+          ? new File([blob], "舒尔特表格成绩.png", { type: "image/png" })
+          : null;
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await shareWithTimeout({
+            files: [file],
+            title: "舒尔特表格",
+            text: "我的舒尔特表格测试结果"
+          }, 5200);
+        } else {
+          await shareWithTimeout({
+            title: "舒尔特表格",
+            text: "我的舒尔特表格测试结果",
+            url: shareUrl
+          }, 3200);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          sharePreviewOverlay.hidden = false;
+        }
+      } finally {
+        shareInProgress = false;
+        sharePreviewNativeBtn.disabled = false;
+      }
+    });
+    rankOverlayOk.addEventListener("click", closeRankOverlay);
     peekBtn.addEventListener("click", () => {
+      if (board.classList.contains("finished")) {
+        shareResultImage();
+        return;
+      }
       playHintSound();
       showNextHint();
     });
-    settingsToggleBtn.addEventListener("click", () => toggleModal(settingsPanel, undefined, sizeRange));
-    settingsCloseBtn.addEventListener("click", () => toggleModal(settingsPanel, false, settingsToggleBtn));
-    infoToggleBtn.addEventListener("click", () => toggleModal(infoPanel, undefined, infoCloseBtn));
-    infoCloseBtn.addEventListener("click", () => toggleModal(infoPanel, false, infoToggleBtn));
+    settingsToggleBtn.addEventListener("click", () => toggleModal(settingsPanel, undefined, settingsCloseBtn, "settings"));
+    settingsCloseBtn.addEventListener("click", () => toggleModal(settingsPanel, false, settingsToggleBtn, "settings"));
+    infoToggleBtn.addEventListener("click", () => toggleModal(infoPanel, undefined, infoCloseBtn, "info"));
+    infoCloseBtn.addEventListener("click", () => toggleModal(infoPanel, false, infoToggleBtn, "info"));
     [settingsPanel, infoPanel].forEach((panel) => {
       panel.addEventListener("click", (event) => {
         if (event.target === panel) {
-          toggleModal(panel, false);
+          toggleModal(panel, false, undefined, panel === settingsPanel ? "settings" : "info");
         }
       });
     });
-    sizeRange.addEventListener("input", () => setBoardSize(sizeRange.value));
-    volumeRange.addEventListener("input", () => setVolume(volumeRange.value));
-    modeButtons.forEach((button) => {
-      button.addEventListener("click", () => setMode(button.dataset.mode));
+    sizeRange.addEventListener("input", () => {
+      setBoardSize(sizeRange.value);
+      playSettingChangeSound("size");
     });
-    window.addEventListener("resize", updateBoardRenderSize);
+    volumeRange.addEventListener("input", () => {
+      setVolume(volumeRange.value);
+      playSettingChangeSound("volume");
+    });
+    animationToggle.addEventListener("click", () => {
+      setAnimations(!animationsEnabled);
+      playSettingChangeSound("animations");
+    });
+    visibilityButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.action;
+        actionVisibility[action] = !actionVisibility[action];
+        renderActionVisibility();
+        playSettingChangeSound("visibility");
+      });
+    });
+    archiveSelectButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        selectArchive(Number(button.dataset.slot));
+        playSettingChangeSound("archive");
+      });
+    });
+    archiveDeleteButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const slot = Number(button.dataset.slot);
+        if (pendingArchiveDelete === slot) {
+          clearArchive(slot);
+          playWrongSound();
+          return;
+        }
+        pendingArchiveDelete = slot;
+        renderArchives();
+        playShortcutStartSound();
+      });
+    });
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.dataset.mode !== currentMode) {
+          playModeSwitchSound(button.dataset.mode);
+        }
+        setMode(button.dataset.mode);
+      });
+    });
+    modePrevBtn.addEventListener("click", () => stepMode(-1));
+    modeNextBtn.addEventListener("click", () => stepMode(1));
+    window.addEventListener("resize", () => {
+      updateBoardRenderSize();
+      renderBottomActions(board.classList.contains("finished"));
+    });
+    window.addEventListener("wheel", preventBackgroundScroll, { passive: false });
+    window.addEventListener("touchmove", preventBackgroundScroll, { passive: false });
     shortcutButtons.forEach((button) => {
-      button.addEventListener("click", () => startShortcutRecording(button.dataset.action));
+      button.addEventListener("mousedown", (event) => {
+        event.stopPropagation();
+        if (recordingAction) {
+          event.preventDefault();
+          suppressShortcutClick = true;
+          playShortcutSetSound();
+          setShortcut(recordingAction, {
+            type: "mouse",
+            button: event.button,
+            label: mouseButtonLabel(event.button)
+          });
+        }
+      });
+      button.addEventListener("click", () => {
+        if (suppressShortcutClick) {
+          suppressShortcutClick = false;
+          return;
+        }
+        if (recordingAction) {
+          return;
+        }
+        playShortcutStartSound();
+        startShortcutRecording(button.dataset.action);
+      });
     });
 
     document.addEventListener("mousedown", (event) => {
+      if (pendingArchiveDelete && !event.target.closest?.(".archive-delete-button")) {
+        pendingArchiveDelete = null;
+        renderArchives();
+      }
       if (recordingAction) {
         event.preventDefault();
+        playShortcutSetSound();
         setShortcut(recordingAction, {
           type: "mouse",
           button: event.button,
@@ -1392,6 +3915,16 @@
       }
     }, true);
 
+    document.addEventListener("mouseup", (event) => {
+      if (
+        introPressedCell
+        && shortcutMatchesMouse(cellClickShortcut, event)
+      ) {
+        event.preventDefault();
+        finishIntroPress(event.target.closest?.(".cell") || null, false);
+      }
+    }, true);
+
     document.addEventListener("contextmenu", (event) => {
       const usesRightButton = Object.values(shortcuts).some((shortcut) => (
         shortcut.type === "mouse" && shortcut.button === 2
@@ -1409,6 +3942,7 @@
         if (event.code === "Escape") {
           return;
         }
+        playShortcutSetSound();
         setShortcut(recordingAction, {
           type: "key",
           code: event.code,
@@ -1421,10 +3955,10 @@
       if (event.code === "Escape") {
         event.preventDefault();
         if (!infoPanel.hidden) {
-          toggleModal(infoPanel, false, infoToggleBtn);
+          toggleModal(infoPanel, false, infoToggleBtn, "info");
           return;
         }
-        toggleModal(settingsPanel, undefined, sizeRange);
+        toggleModal(settingsPanel, undefined, settingsCloseBtn, "settings");
         return;
       }
 
@@ -1443,17 +3977,17 @@
         return;
       }
 
-      if (shortcutMatchesKey(shortcuts.cellClick, event)) {
-        event.preventDefault();
-        activateCell(activeCell || document.activeElement.closest?.(".cell"));
-      }
     });
 
     loadSettings();
     renderModeButtons();
+    renderTopModeSwitcher();
     loadShortcuts();
     setBoardSize(sizeRange.value);
     setVolume(volumeRange.value);
+    setAnimations(animationsEnabled, false);
+    renderActionVisibility(false);
+    renderArchives();
     resetGame();
   </script>
 </body>
