@@ -2762,14 +2762,14 @@
 
     function shareHistoryHighRank(mode) {
       return getRankHistory(mode).length < 5
-        ? { placeholder: true, text: "暂无段位" }
+        ? { placeholder: true, text: "暂无" }
         : getHistoryHighRank(mode);
     }
 
     function drawShareSummaryTable(ctx, x, y, width) {
       const rowHeight = 54;
       const columns = [96, 252, 252, 160];
-      const headers = ["模式", "当前段位", "历史最高", "最快用时"];
+      const headers = ["难度等级", "当前段位", "历史最高", "最快用时"];
       ctx.lineWidth = 1.2;
       ctx.strokeStyle = "rgba(23, 32, 39, 0.2)";
       ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
