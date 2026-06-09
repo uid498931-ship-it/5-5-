@@ -15,6 +15,8 @@
       --radius: 8px;
       --board-size: 600px;
       --cell-font: 60px;
+      --board-offset-x: 0px;
+      --board-offset-y: 0px;
       font-family: "Trebuchet MS", "Microsoft YaHei", "PingFang SC", sans-serif;
     }
 
@@ -86,6 +88,195 @@
       display: grid;
       justify-items: center;
       gap: 14px;
+    }
+
+    .trainer.controls-hidden .top-controls,
+    .trainer.controls-hidden .bottom-actions,
+    .trainer.controls-hidden .result,
+    .trainer.controls-hidden .share-button {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .challenge-toast {
+      position: fixed;
+      left: 50%;
+      top: max(18px, env(safe-area-inset-top));
+      z-index: 8;
+      max-width: calc(100vw - 28px);
+      padding: 10px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 6px;
+      background: #172027;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.25;
+      text-align: center;
+      box-shadow: 0 10px 28px rgba(23, 32, 39, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -12px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .challenge-toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .combo-hud {
+      position: fixed;
+      left: var(--combo-x, calc(100vw - 180px));
+      top: var(--combo-y, 50vh);
+      z-index: 7;
+      width: 156px;
+      padding: 5px;
+      border: 1px solid color-mix(in srgb, var(--combo-accent, #5ee7ff) 76%, #fff);
+      border-radius: 4px;
+      background: #10171c;
+      color: #fff;
+      line-height: 1;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      box-shadow:
+        0 0 0 2px rgba(16, 23, 28, 0.92),
+        0 0 20px color-mix(in srgb, var(--combo-accent, #5ee7ff) 42%, transparent),
+        0 14px 34px rgba(10, 16, 20, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) scale(0.88);
+      transform-origin: left center;
+      transition: opacity 150ms ease, transform 180ms cubic-bezier(.2, .9, .2, 1.2);
+      --combo-accent: #5ee7ff;
+      --combo-progress: 0.12;
+    }
+
+    .combo-hud::before,
+    .combo-hud::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .combo-hud::before {
+      inset: -5px;
+      border: 2px solid var(--combo-accent);
+      clip-path: polygon(0 0, 22px 0, 22px 2px, 2px 2px, 2px 22px, 0 22px, 0 0, 100% 0, 100% 22px, calc(100% - 2px) 22px, calc(100% - 2px) 2px, calc(100% - 22px) 2px, calc(100% - 22px) 0, 100% 0, 100% 100%, calc(100% - 22px) 100%, calc(100% - 22px) calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) calc(100% - 22px), 100% calc(100% - 22px), 100% 100%, 0 100%, 0 calc(100% - 22px), 2px calc(100% - 22px), 2px calc(100% - 2px), 22px calc(100% - 2px), 22px 100%, 0 100%);
+      opacity: 0.9;
+    }
+
+    .combo-hud::after {
+      content: "+1";
+      right: -12px;
+      top: -18px;
+      color: var(--combo-accent);
+      font-size: 17px;
+      font-weight: 1000;
+      text-shadow: 0 0 10px var(--combo-accent);
+      opacity: 0;
+    }
+
+    .combo-core {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      padding: 11px 10px 10px;
+      overflow: hidden;
+      background: #172027;
+    }
+
+    .combo-kicker {
+      color: var(--combo-accent);
+      font-size: 12px;
+      font-weight: 1000;
+      letter-spacing: 0;
+    }
+
+    .combo-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .combo-main strong {
+      color: #fff;
+      font-size: 44px;
+      font-weight: 1000;
+      line-height: 0.9;
+      text-shadow: 0 0 14px color-mix(in srgb, var(--combo-accent) 72%, transparent);
+    }
+
+    .combo-main span {
+      color: #dce5e9;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .combo-state {
+      min-height: 13px;
+      color: color-mix(in srgb, var(--combo-accent) 72%, #fff);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .combo-track {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .combo-track i {
+      position: absolute;
+      inset: 0;
+      background: var(--combo-accent);
+      box-shadow: 0 0 9px var(--combo-accent);
+      transform: scaleX(var(--combo-progress));
+      transform-origin: left;
+      transition: transform 180ms ease-out;
+    }
+
+    .combo-hud[data-tier="flow"] {
+      --combo-accent: #9cff57;
+    }
+
+    .combo-hud[data-tier="surge"] {
+      --combo-accent: #ffd34d;
+    }
+
+    .combo-hud[data-tier="peak"] {
+      --combo-accent: #ff5fd2;
+    }
+
+    .combo-hud.show {
+      opacity: 1;
+      transform: translateY(-50%) scale(1);
+    }
+
+    body.modal-open .combo-hud,
+    body.modal-open .challenge-toast {
+      opacity: 0;
+    }
+
+    .combo-hud.pulse {
+      animation: none;
+    }
+
+    .combo-hud.pulse .combo-core {
+      animation: comboPulse 240ms cubic-bezier(.16, .86, .34, 1.18);
+    }
+
+    .combo-hud.pulse::after {
+      animation: comboIncrement 420ms ease-out;
+    }
+
+    .combo-hud.milestone .combo-core {
+      animation: comboMilestone 420ms cubic-bezier(.18, .9, .22, 1.22);
     }
 
     .top-controls {
@@ -179,6 +370,7 @@
     }
 
     .board-shell {
+      position: relative;
       order: 2;
       width: min(var(--board-size), 100%);
       max-width: 100%;
@@ -188,6 +380,50 @@
       box-shadow: var(--shadow);
       overflow: hidden;
       backdrop-filter: blur(16px);
+      transform: translate3d(var(--board-offset-x), var(--board-offset-y), 0);
+      transition: transform 180ms ease;
+      will-change: transform;
+    }
+
+    .board-shell::after {
+      content: "";
+      position: absolute;
+      inset: -22%;
+      z-index: 12;
+      pointer-events: none;
+      background: linear-gradient(
+        112deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.18) 45%,
+        rgba(255, 255, 255, 0.92) 50%,
+        rgba(255, 255, 255, 0.18) 55%,
+        transparent 62%
+      );
+      opacity: 0;
+      transform: translateX(-82%);
+    }
+
+    .board-shell.finish-celebration {
+      z-index: 6;
+      animation: boardVictoryGlow 920ms ease-out both;
+    }
+
+    .board-shell.finish-celebration::after {
+      animation: boardVictorySweep 760ms cubic-bezier(.2, .8, .2, 1) 100ms both;
+    }
+
+    .board-shell.finish-celebration .cell {
+      animation: finishCellWave 520ms ease-out var(--finish-delay, 0ms) both;
+    }
+
+    .board-shell.finish-folding {
+      pointer-events: none;
+      animation: boardFoldAway 620ms cubic-bezier(.62, 0, .3, 1) forwards;
+    }
+
+    .board-shell.is-teleporting,
+    .board-shell.is-drifting {
+      transition: none;
     }
 
     .board {
@@ -287,6 +523,31 @@
       transition: opacity 220ms ease, transform 220ms cubic-bezier(.2, .9, .18, 1.18);
     }
 
+    .center-hit-marker {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      z-index: 5;
+      width: 44px;
+      height: 44px;
+      border: 2px dashed var(--center-hit-color, #111);
+      background: color-mix(in srgb, var(--center-hit-color, #111) 14%, transparent);
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    .board.center-only-active .center-hit-marker {
+      opacity: 0.88;
+    }
+
+    .board.center-only-active .cell.done .center-hit-marker,
+    .board.center-only-active .cell.vanished .center-hit-marker,
+    .board.finished .center-hit-marker {
+      opacity: 0;
+    }
+
     .particle-layer {
       position: absolute;
       inset: 0;
@@ -313,6 +574,27 @@
       animation: particleBurst 560ms ease-out forwards;
     }
 
+    .intro-fragment {
+      position: absolute;
+      left: var(--x);
+      top: var(--y);
+      width: var(--fragment-width);
+      height: var(--fragment-height);
+      border: 1px solid rgba(23, 32, 39, 0.34);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow:
+        0 1px 2px rgba(23, 32, 39, 0.34),
+        0 0 7px rgba(255, 255, 255, 0.82);
+      pointer-events: none;
+      transform-origin: center;
+      will-change: transform, opacity;
+    }
+
+    .result.result-arriving {
+      animation: resultArrival 480ms cubic-bezier(.2, .86, .24, 1.08) both;
+    }
+
     .confetti-particle {
       position: absolute;
       left: var(--x);
@@ -321,7 +603,7 @@
       height: var(--size);
       border-radius: 2px;
       background: var(--color);
-      box-shadow: 0 0 var(--glow) var(--color);
+      box-shadow: 0 0 var(--glow) var(--shadow-color, var(--color));
       pointer-events: none;
       transform-origin: center;
     }
@@ -363,6 +645,15 @@
     .cell.done {
       pointer-events: none;
       box-shadow: none !important;
+    }
+
+    .cell.vanished {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .cell.combo-break {
+      animation: vanishedComboBreak 300ms cubic-bezier(.36, .07, .19, .97);
     }
 
     .cell.done::after {
@@ -452,6 +743,7 @@
       order: 4;
       width: min(100%, 620px);
       position: relative;
+      scroll-margin-top: max(16px, env(safe-area-inset-top));
       padding: 20px;
       display: grid;
       gap: 16px;
@@ -589,6 +881,81 @@
     .empty-value {
       color: #aab2b8;
       font-weight: 900;
+    }
+
+    .performance-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .performance-summary[hidden] {
+      display: none;
+    }
+
+    .performance-item {
+      min-height: 58px;
+      padding: 7px 8px;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 4px;
+      text-align: center;
+      border-right: 1px solid var(--line);
+    }
+
+    .performance-item:last-child {
+      border-right: 0;
+    }
+
+    .performance-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .performance-value {
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .performance-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .performance-badges[hidden] {
+      display: none;
+    }
+
+    .performance-badge {
+      padding: 5px 9px;
+      border: 1px solid rgba(23, 32, 39, 0.18);
+      border-radius: 4px;
+      background: rgba(23, 32, 39, 0.07);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .profile-line {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.35;
+    }
+
+    .profile-line[hidden] {
+      display: none;
     }
 
     .split-table {
@@ -1080,6 +1447,92 @@
       72% { transform: translateX(3px); }
     }
 
+    @keyframes comboPulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      42% { transform: scale(1.09); filter: brightness(1.42); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+
+    @keyframes comboIncrement {
+      0% { opacity: 0; transform: translate(-4px, 8px) scale(0.7); }
+      24% { opacity: 1; transform: translate(0, 0) scale(1.16); }
+      100% { opacity: 0; transform: translate(7px, -13px) scale(0.92); }
+    }
+
+    @keyframes comboMilestone {
+      0% { transform: scale(1); }
+      32% { transform: scale(1.13) rotate(-1deg); }
+      58% { transform: scale(1.08) rotate(1deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    @keyframes comboMobileEnter {
+      0% { opacity: 0; transform: translateY(-8px) scale(0.92); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes boardVictoryGlow {
+      0% {
+        box-shadow: var(--shadow);
+        filter: brightness(1);
+      }
+      32% {
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92), 0 0 42px rgba(255, 211, 77, 0.68);
+        filter: brightness(1.28);
+      }
+      100% {
+        box-shadow: 0 18px 48px rgba(23, 32, 39, 0.24);
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes boardVictorySweep {
+      0% { opacity: 0; transform: translateX(-82%); }
+      18% { opacity: 1; }
+      76% { opacity: 0.92; }
+      100% { opacity: 0; transform: translateX(82%); }
+    }
+
+    @keyframes finishCellWave {
+      0%, 100% { filter: brightness(1); }
+      48% { filter: brightness(1.72) saturate(1.22); }
+    }
+
+    @keyframes boardFoldAway {
+      0% {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+        filter: brightness(1) blur(0);
+      }
+      54% {
+        opacity: 1;
+        clip-path: inset(38% 2% 38% 2%);
+        filter: brightness(1.45) blur(0);
+      }
+      82% {
+        opacity: 0.72;
+        clip-path: inset(48.5% 8% 48.5% 8%);
+        filter: brightness(1.8) blur(1px);
+      }
+      100% {
+        opacity: 0;
+        clip-path: inset(50% 18% 50% 18%);
+        filter: brightness(2) blur(3px);
+      }
+    }
+
+    @keyframes resultArrival {
+      0% { opacity: 0.45; transform: translateY(18px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes vanishedComboBreak {
+      0%, 100% { filter: brightness(1); }
+      22% { filter: brightness(1.55); }
+      44% { filter: brightness(0.72); }
+      66% { filter: brightness(1.32); }
+    }
+
     @keyframes hintPulse {
       0% { transform: scale(0.72); }
       35% { transform: scale(1.08); }
@@ -1208,7 +1661,7 @@
       }
 
       .result {
-        order: 4;
+        order: 5;
       }
 
       .bottom-actions button {
@@ -1242,6 +1695,80 @@
         min-height: 48px;
         padding: 5px 6px;
         gap: 3px;
+      }
+
+      .performance-item {
+        min-height: 50px;
+        padding: 5px 4px;
+      }
+
+      .performance-label {
+        font-size: 11px;
+      }
+
+      .performance-value {
+        font-size: 17px;
+      }
+
+      .combo-hud {
+        position: relative;
+        display: none;
+        order: 4;
+        left: auto;
+        top: auto;
+        width: min(290px, calc(100vw - 28px));
+        padding: 4px;
+        transform: none;
+        transform-origin: center;
+      }
+
+      .combo-hud.show {
+        display: block;
+        transform: none;
+        animation: comboMobileEnter 220ms cubic-bezier(.18, .88, .24, 1.16);
+      }
+
+      .combo-core {
+        grid-template-columns: auto auto 1fr;
+        grid-template-rows: auto auto;
+        align-items: center;
+        justify-items: start;
+        column-gap: 9px;
+        row-gap: 3px;
+        padding: 8px 13px 7px;
+      }
+
+      .combo-kicker {
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 11px;
+      }
+
+      .combo-main {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+      }
+
+      .combo-main strong {
+        font-size: 34px;
+      }
+
+      .combo-main span {
+        font-size: 14px;
+      }
+
+      .combo-state {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        font-size: 12px;
+      }
+
+      .combo-track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        align-self: end;
+        height: 3px;
       }
 
       #bestTime {
@@ -1339,12 +1866,12 @@
     <div class="top-controls" aria-label="顶部控制">
       <button id="infoToggle" class="top-button" type="button">说明</button>
       <section class="mode-switcher" aria-label="模式切换">
-        <button class="mode-arrow" id="modePrev" type="button" aria-label="上一个模式">◀</button>
+        <button class="mode-arrow" id="modePrev" type="button" aria-label="上一个模式" aria-keyshortcuts="D">◀</button>
         <div class="top-mode-label" id="topModeLabel">
           <span class="top-mode-caption">模式</span>
           <span class="top-mode-name" id="topModeName">入门</span>
         </div>
-        <button class="mode-arrow" id="modeNext" type="button" aria-label="下一个模式">▶</button>
+        <button class="mode-arrow" id="modeNext" type="button" aria-label="下一个模式" aria-keyshortcuts="F">▶</button>
       </section>
       <button id="settingsToggle" class="top-button settings-button" type="button" aria-keyshortcuts="Escape">设置</button>
     </div>
@@ -1355,7 +1882,7 @@
 
     <div class="bottom-actions">
       <button id="restart" class="restart-button" type="button" aria-keyshortcuts="Space">刷新</button>
-      <button id="peek" class="hint-button" type="button" aria-keyshortcuts="Shift">提示</button>
+      <button id="peek" class="hint-button" type="button" aria-keyshortcuts="A">提示</button>
     </div>
 
     <section class="result" id="resultPanel" aria-live="polite">
@@ -1378,6 +1905,22 @@
           <span class="stat-value" id="bestTime"><span class="empty-value">暂无</span></span>
         </div>
       </div>
+      <div class="performance-summary" id="performanceSummary" hidden>
+        <div class="performance-item">
+          <span class="performance-label">专注评分</span>
+          <span class="performance-value" id="focusScore">--</span>
+        </div>
+        <div class="performance-item">
+          <span class="performance-label">最大连击</span>
+          <span class="performance-value" id="maxCombo">--</span>
+        </div>
+        <div class="performance-item">
+          <span class="performance-label">平均反应</span>
+          <span class="performance-value" id="averageReaction">--</span>
+        </div>
+      </div>
+      <div class="performance-badges" id="performanceBadges" hidden></div>
+      <div class="profile-line" id="profileLine" hidden></div>
       <button class="share-button" id="shareResult" type="button" hidden>分享</button>
       <table class="split-table" id="splitTable" aria-label="每个数字对应花费的时间" hidden>
         <thead>
@@ -1389,6 +1932,8 @@
         <tbody id="splitRows"></tbody>
       </table>
     </section>
+    <div class="challenge-toast" id="challengeToast" role="status" aria-live="polite"></div>
+    <div class="combo-hud" id="comboHud" role="status" aria-live="polite"></div>
   </main>
 
   <div class="modal" id="settingsPanel" hidden>
@@ -1433,7 +1978,7 @@
           </div>
           <div class="shortcut-row">
             <span>提示</span>
-            <button class="shortcut-button" id="hintShortcut" type="button" data-action="hint">Shift</button>
+            <button class="shortcut-button" id="hintShortcut" type="button" data-action="hint">A</button>
             <button class="visibility-button" type="button" data-action="hint" aria-pressed="true">显示</button>
           </div>
         </div>
@@ -1545,6 +2090,7 @@
 
   <script>
     const board = document.querySelector("#board");
+    const boardShell = document.querySelector(".board-shell");
     const trainer = document.querySelector(".trainer");
     const timeEl = document.querySelector("#time");
     const restartBtn = document.querySelector("#restart");
@@ -1584,6 +2130,14 @@
     const bestTimeEl = document.querySelector("#bestTime");
     const splitTable = document.querySelector("#splitTable");
     const splitRows = document.querySelector("#splitRows");
+    const challengeToast = document.querySelector("#challengeToast");
+    const comboHud = document.querySelector("#comboHud");
+    const performanceSummary = document.querySelector("#performanceSummary");
+    const focusScoreEl = document.querySelector("#focusScore");
+    const maxComboEl = document.querySelector("#maxCombo");
+    const averageReactionEl = document.querySelector("#averageReaction");
+    const performanceBadges = document.querySelector("#performanceBadges");
+    const profileLine = document.querySelector("#profileLine");
     const rankOverlay = document.querySelector("#rankOverlay");
     const rankOverlayTitle = document.querySelector("#rankOverlayTitle");
     const rankOverlaySubtitle = document.querySelector("#rankOverlaySubtitle");
@@ -1609,6 +2163,8 @@
     const animationKey = "schulte-animations-v1";
     const visibilityKey = "schulte-action-visibility-v1";
     const shortcutKey = "schulte-shortcuts-v1";
+    const shortcutDefaultMigrationKey = "schulte-shortcuts-a-default-v1";
+    const trainingProfileKeyPrefix = "schulte-training-profile-v1";
     const modeKey = "schulte-mode-v1";
     const shareUrl = "https://uid498931-ship-it.github.io/Schulte-Grid/";
     const modeLabels = {
@@ -1646,6 +2202,8 @@
     let lastResultRank = null;
     let rankOverlayTimer = 0;
     let rankOverlayCloseTimer = 0;
+    let finishFoldTimer = 0;
+    let finishSettleTimer = 0;
     let shareInProgress = false;
     let latestShareDataUrl = "";
     let latestShareBlob = null;
@@ -1666,11 +2224,30 @@
     let recordingAction = null;
     let suppressShortcutClick = false;
     let currentMode = "intro";
+    let boardOffsetX = 0;
+    let boardOffsetY = 0;
+    let teleportTimer = 0;
+    let driftFrame = 0;
+    let driftState = null;
+    let boardMotionMode = null;
+    let manualBoardMoveActive = false;
+    let challengeToastTimer = 0;
+    let activeChallengeLabels = [];
+    let rhythmCombo = 0;
+    let maxRhythmCombo = 0;
+    let lastRhythmHitMs = 0;
+    let randomNumberColorsActive = false;
+    let centerOnlyActive = false;
     const cellClickShortcut = { type: "mouse", button: 0, label: "鼠标左键" };
     const defaultShortcuts = {
       refresh: { type: "key", code: "Space", key: " ", label: "空格" },
-      hint: { type: "key", code: "ShiftLeft", key: "Shift", label: "Shift" }
+      hint: { type: "key", code: "KeyA", key: "a", label: "A" }
     };
+    const legacyHintShortcut = { type: "key", code: "ShiftLeft", key: "Shift", label: "Shift" };
+    const reservedShortcutCodes = new Set([
+      "KeyD", "KeyF", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+      "KeyS", "KeyQ", "KeyW", "KeyE", "KeyR", "KeyT"
+    ]);
     let shortcuts = {
       ...defaultShortcuts
     };
@@ -1806,6 +2383,19 @@
       return `key:${shortcut.code}`;
     }
 
+    function isReservedShortcut(shortcut) {
+      return shortcut?.type === "key" && reservedShortcutCodes.has(shortcut.code);
+    }
+
+    function shortcutAriaKey(shortcut) {
+      if (!shortcut || shortcut.type !== "key") return "";
+      if (shortcut.code === "Space") return "Space";
+      if (shortcut.key === "Shift") return "Shift";
+      if (shortcut.code?.startsWith("Key")) return shortcut.code.slice(3);
+      if (shortcut.code?.startsWith("Arrow")) return shortcut.code;
+      return shortcut.key?.length === 1 ? shortcut.key.toUpperCase() : (shortcut.key || shortcut.code || "");
+    }
+
     function findShortcutOwner(shortcut, exceptAction) {
       const id = shortcutId(shortcut);
       return Object.keys(shortcuts).find((action) => (
@@ -1836,10 +2426,15 @@
       } catch {
         localStorage.removeItem(shortcutKey);
       }
+      const needsHintMigration = localStorage.getItem(shortcutDefaultMigrationKey) !== "1";
+      if (needsHintMigration && shortcutId(shortcuts.hint) === shortcutId(legacyHintShortcut)) {
+        shortcuts.hint = defaultShortcuts.hint;
+      }
+      localStorage.setItem(shortcutDefaultMigrationKey, "1");
       const seen = new Set();
       Object.keys(shortcuts).forEach((action) => {
         const id = shortcutId(shortcuts[action]);
-        if (id === shortcutId(cellClickShortcut) || seen.has(id)) {
+        if (id === shortcutId(cellClickShortcut) || isReservedShortcut(shortcuts[action]) || seen.has(id)) {
           shortcuts[action] = defaultShortcuts[action];
         }
         seen.add(shortcutId(shortcuts[action]));
@@ -1863,7 +2458,7 @@
     }
 
     function setShortcut(action, shortcut) {
-      if (shortcutId(shortcut) === shortcutId(cellClickShortcut)) {
+      if (shortcutId(shortcut) === shortcutId(cellClickShortcut) || isReservedShortcut(shortcut)) {
         stopShortcutRecording();
         return;
       }
@@ -1874,6 +2469,401 @@
       shortcuts[action] = shortcut;
       saveShortcuts();
       stopShortcutRecording();
+    }
+
+    function getBoardMoveLimits() {
+      const width = boardShell.offsetWidth || board.offsetWidth || Number(sizeRange.value) || 600;
+      const height = boardShell.offsetHeight || width;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || width;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || height;
+      const rect = boardShell.getBoundingClientRect();
+      const baseTop = rect.top - boardOffsetY;
+      const safeTop = 4;
+      return {
+        x: Math.max(36, Math.min(viewportWidth * 0.32, width * 0.58)),
+        minY: -Math.max(0, baseTop - safeTop),
+        maxY: Math.max(80, Math.min(viewportHeight * 0.42, height * 0.72))
+      };
+    }
+
+    function getBoardViewportLimits() {
+      const width = boardShell.offsetWidth || board.offsetWidth || Number(sizeRange.value) || 600;
+      const height = boardShell.offsetHeight || width;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || width;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || height;
+      const rect = boardShell.getBoundingClientRect();
+      const baseLeft = rect.left - boardOffsetX;
+      const baseTop = rect.top - boardOffsetY;
+      const inset = 4;
+      return {
+        minX: -Math.max(0, baseLeft - inset),
+        maxX: Math.max(0, viewportWidth - inset - (baseLeft + width)),
+        minY: -Math.max(0, baseTop - inset),
+        maxY: Math.max(0, viewportHeight - inset - (baseTop + height))
+      };
+    }
+
+    function clampBoardOffset(x, y) {
+      const limits = getBoardMoveLimits();
+      return {
+        x: Math.max(-limits.x, Math.min(limits.x, x)),
+        y: Math.max(limits.minY, Math.min(limits.maxY, y))
+      };
+    }
+
+    function setBoardOffset(x, y, shouldClamp = true) {
+      const next = shouldClamp ? clampBoardOffset(x, y) : { x, y };
+      boardOffsetX = next.x;
+      boardOffsetY = next.y;
+      document.documentElement.style.setProperty("--board-offset-x", `${boardOffsetX.toFixed(2)}px`);
+      document.documentElement.style.setProperty("--board-offset-y", `${boardOffsetY.toFixed(2)}px`);
+      if (comboHud.classList.contains("show")) {
+        requestAnimationFrame(positionComboHud);
+      }
+    }
+
+    function hideBoardControls() {
+      trainer.classList.add("controls-hidden");
+    }
+
+    function stopBoardMotion(clearMode = false) {
+      clearInterval(teleportTimer);
+      teleportTimer = 0;
+      cancelAnimationFrame(driftFrame);
+      driftFrame = 0;
+      driftState = null;
+      boardShell.classList.remove("is-teleporting", "is-drifting");
+      if (clearMode) {
+        boardMotionMode = null;
+      }
+    }
+
+    function restoreNumberColors() {
+      document.querySelectorAll(".cell").forEach((cell) => {
+        if (cell.dataset.textColor) {
+          cell.style.color = cell.dataset.textColor;
+        }
+      });
+    }
+
+    function hideChallengeToast() {
+      clearTimeout(challengeToastTimer);
+      challengeToastTimer = 0;
+      challengeToast.classList.remove("show");
+    }
+
+    function clearChallengeTracking() {
+      activeChallengeLabels = [];
+      hideChallengeToast();
+    }
+
+    function showChallengeToast(labels) {
+      hideChallengeToast();
+      challengeToast.textContent = `随机挑战：${labels.join(" + ")}`;
+      challengeToast.classList.add("show");
+      challengeToastTimer = window.setTimeout(() => {
+        challengeToast.classList.remove("show");
+      }, 1800);
+    }
+
+    function positionComboHud() {
+      const rect = boardShell.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      if (isMobile) {
+        const x = Math.max(148, Math.min(window.innerWidth - 148, rect.left + rect.width / 2));
+        const y = Math.max(
+          12,
+          Math.min(window.innerHeight - 74, rect.bottom + 12)
+        );
+        comboHud.style.setProperty("--combo-x", `${x}px`);
+        comboHud.style.setProperty("--combo-y", `${y}px`);
+        return;
+      }
+
+      const hudWidth = 156;
+      const preferredX = rect.right + 26;
+      const x = Math.max(12, Math.min(window.innerWidth - hudWidth - 14, preferredX));
+      const y = Math.max(86, Math.min(window.innerHeight - 86, rect.top + rect.height / 2));
+      comboHud.style.setProperty("--combo-x", `${x}px`);
+      comboHud.style.setProperty("--combo-y", `${y}px`);
+    }
+
+    function renderComboHud() {
+      const shouldShow = rhythmCombo >= 3 && !board.classList.contains("finished");
+      const tiers = rhythmCombo >= 15
+        ? { id: "peak", label: "巅峰节奏" }
+        : rhythmCombo >= 10
+          ? { id: "surge", label: "节奏过载" }
+          : rhythmCombo >= 6
+            ? { id: "flow", label: "状态升温" }
+            : { id: "steady", label: "节奏建立" };
+      comboHud.dataset.tier = tiers.id;
+      comboHud.style.setProperty("--combo-progress", Math.min(1, rhythmCombo / 25).toFixed(3));
+      comboHud.innerHTML = shouldShow
+        ? `<div class="combo-core"><span class="combo-kicker">COMBO</span><span class="combo-main"><strong>${rhythmCombo}</strong><span>连击</span></span><span class="combo-state">${tiers.label}</span><span class="combo-track"><i></i></span></div>`
+        : "";
+      comboHud.classList.toggle("show", shouldShow);
+      comboHud.classList.toggle("milestone", shouldShow && rhythmCombo % 5 === 0);
+      if (shouldShow) {
+        requestAnimationFrame(positionComboHud);
+      }
+      if (shouldShow && animationsEnabled) {
+        comboHud.classList.remove("pulse");
+        void comboHud.offsetWidth;
+        comboHud.classList.add("pulse");
+      }
+    }
+
+    function resetRhythmCombo() {
+      rhythmCombo = 0;
+      lastRhythmHitMs = 0;
+      renderComboHud();
+    }
+
+    function registerRhythmHit(nowMs) {
+      const rhythmWindowMs = 2500;
+      rhythmCombo = rhythmCombo > 0 && nowMs - lastRhythmHitMs <= rhythmWindowMs
+        ? rhythmCombo + 1
+        : 1;
+      lastRhythmHitMs = nowMs;
+      maxRhythmCombo = Math.max(maxRhythmCombo, rhythmCombo);
+      renderComboHud();
+    }
+
+    function getTrainingProfileKey(mode = currentMode, slot = currentArchiveSlot) {
+      return `${trainingProfileKeyPrefix}-${slot}-${mode}`;
+    }
+
+    function getTrainingProfile(mode = currentMode, slot = currentArchiveSlot) {
+      const fallback = {
+        games: 0,
+        perfectGames: 0,
+        challengeWins: 0,
+        bestCombo: 0
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(getTrainingProfileKey(mode, slot)) || "null");
+        return saved ? { ...fallback, ...saved } : fallback;
+      } catch {
+        localStorage.removeItem(getTrainingProfileKey(mode, slot));
+        return fallback;
+      }
+    }
+
+    function saveTrainingProfile(profile, mode = currentMode, slot = currentArchiveSlot) {
+      localStorage.setItem(getTrainingProfileKey(mode, slot), JSON.stringify(profile));
+    }
+
+    function updateTrainingProfile() {
+      const profile = getTrainingProfile();
+      profile.games += 1;
+      profile.perfectGames += errorCount === 0 && !usedHint ? 1 : 0;
+      profile.challengeWins += activeChallengeLabels.length === 2 ? 1 : 0;
+      profile.bestCombo = Math.max(profile.bestCombo, maxRhythmCombo);
+      saveTrainingProfile(profile);
+      return profile;
+    }
+
+    function focusScore() {
+      const missedCombo = Math.max(0, 25 - maxRhythmCombo);
+      return Math.max(0, Math.min(100, Math.round(
+        100 - errorCount * 8 - (usedHint ? 20 : 0) - missedCombo * 1.2
+      )));
+    }
+
+    function performanceBadgeLabels() {
+      const badges = [];
+      if (errorCount === 0) badges.push("零失误");
+      if (!usedHint) badges.push("独立完成");
+      if (maxRhythmCombo >= 25) badges.push("满连击");
+      if (elapsed < 20000) badges.push("20秒内");
+      if (activeChallengeLabels.length === 2) badges.push("混合挑战");
+      return badges;
+    }
+
+    function renderPerformanceSummary() {
+      const correctEntries = splitTimes.filter((entry) => !entry.wrong);
+      const averageMs = correctEntries.length
+        ? correctEntries.reduce((sum, entry) => sum + entry.ms, 0) / correctEntries.length
+        : 0;
+      const profile = updateTrainingProfile();
+      const badges = performanceBadgeLabels();
+      focusScoreEl.textContent = String(focusScore());
+      maxComboEl.textContent = String(maxRhythmCombo);
+      averageReactionEl.textContent = `${formatTime(averageMs, 3)}秒`;
+      performanceBadges.replaceChildren(...badges.map((label) => {
+        const badge = document.createElement("span");
+        badge.className = "performance-badge";
+        badge.textContent = label;
+        return badge;
+      }));
+      performanceSummary.hidden = false;
+      performanceBadges.hidden = badges.length === 0;
+      profileLine.textContent = `训练档案：完成 ${profile.games} 局 · 零失误 ${profile.perfectGames} 局 · 挑战 ${profile.challengeWins} 局 · 最佳连击 ${profile.bestCombo}`;
+      profileLine.hidden = false;
+    }
+
+    function hidePerformanceSummary() {
+      performanceSummary.hidden = true;
+      performanceBadges.hidden = true;
+      profileLine.hidden = true;
+      performanceBadges.replaceChildren();
+    }
+
+    function resetBoardTrainingEffects() {
+      stopBoardMotion(true);
+      manualBoardMoveActive = false;
+      clearChallengeTracking();
+      centerOnlyActive = false;
+      randomNumberColorsActive = false;
+      board.classList.remove("center-only-active");
+      restoreNumberColors();
+      setBoardOffset(0, 0, false);
+      trainer.classList.remove("controls-hidden");
+      hideChallengeToast();
+    }
+
+    function moveBoardBy(columnDirection, rowDirection) {
+      stopBoardMotion(true);
+      manualBoardMoveActive = true;
+      hideBoardControls();
+      const step = window.matchMedia("(max-width: 768px)").matches ? 18 : 26;
+      setBoardOffset(boardOffsetX + columnDirection * step, boardOffsetY + rowDirection * step);
+    }
+
+    function startBoardTeleport() {
+      stopBoardMotion(false);
+      boardMotionMode = "teleport";
+      manualBoardMoveActive = false;
+      hideBoardControls();
+      boardShell.classList.add("is-teleporting");
+      const jump = () => {
+        const limits = getBoardMoveLimits();
+        setBoardOffset(
+          (Math.random() * 2 - 1) * limits.x,
+          limits.minY + Math.random() * (limits.maxY - limits.minY),
+          false
+        );
+      };
+      jump();
+      teleportTimer = window.setInterval(jump, 500);
+    }
+
+    function pickDriftTarget() {
+      if (!driftState) return;
+      const speed = 70 + Math.random() * 210;
+      const angle = Math.random() * Math.PI * 2;
+      driftState.targetVx = Math.cos(angle) * speed;
+      driftState.targetVy = Math.sin(angle) * speed * 0.82;
+      driftState.ease = 0.8 + Math.random() * 2.2;
+      driftState.nextChange = performance.now() + 420 + Math.random() * 920;
+    }
+
+    function driftBoard(now) {
+      if (!driftState) return;
+      const dt = Math.min(0.04, Math.max(0.001, (now - driftState.last) / 1000));
+      driftState.last = now;
+      if (now >= driftState.nextChange) {
+        pickDriftTarget();
+      }
+
+      const ease = 1 - Math.exp(-driftState.ease * dt);
+      driftState.vx += (driftState.targetVx - driftState.vx) * ease;
+      driftState.vy += (driftState.targetVy - driftState.vy) * ease;
+
+      let x = boardOffsetX + driftState.vx * dt;
+      let y = boardOffsetY + driftState.vy * dt;
+      const limits = getBoardViewportLimits();
+      if (x < limits.minX || x > limits.maxX) {
+        x = x < limits.minX ? limits.minX : limits.maxX;
+        driftState.vx *= -0.68;
+        driftState.targetVx *= -0.6;
+      }
+      if (y < limits.minY || y > limits.maxY) {
+        y = y < limits.minY ? limits.minY : limits.maxY;
+        driftState.vy *= -0.68;
+        driftState.targetVy *= -0.6;
+      }
+      setBoardOffset(x, y, false);
+      driftFrame = requestAnimationFrame(driftBoard);
+    }
+
+    function startBoardDrift() {
+      stopBoardMotion(false);
+      boardMotionMode = "drift";
+      manualBoardMoveActive = false;
+      hideBoardControls();
+      boardShell.classList.add("is-drifting");
+      const limits = getBoardViewportLimits();
+      setBoardOffset(
+        Math.max(limits.minX, Math.min(limits.maxX, boardOffsetX)),
+        Math.max(limits.minY, Math.min(limits.maxY, boardOffsetY)),
+        false
+      );
+      driftState = {
+        last: performance.now(),
+        vx: 0,
+        vy: 0,
+        targetVx: 0,
+        targetVy: 0,
+        ease: 1.4,
+        nextChange: 0
+      };
+      pickDriftTarget();
+      driftFrame = requestAnimationFrame(driftBoard);
+    }
+
+    function randomNumberColor() {
+      const hue = Math.floor(Math.random() * 360);
+      const saturation = 72 + Math.floor(Math.random() * 22);
+      const lightness = currentMode === "normal" ? 84 + Math.floor(Math.random() * 8) : 28 + Math.floor(Math.random() * 18);
+      return `hsl(${hue} ${saturation}% ${lightness}%)`;
+    }
+
+    function applyRandomNumberColors() {
+      randomNumberColorsActive = true;
+      document.querySelectorAll(".cell").forEach((cell) => {
+        cell.style.color = randomNumberColor();
+      });
+    }
+
+    function enableCenterOnlyClicks() {
+      centerOnlyActive = true;
+      board.classList.add("center-only-active");
+    }
+
+    function startRandomChallenge() {
+      resetBoardTrainingEffects();
+      const options = [
+        { id: "teleport", label: "随机瞬移", apply: startBoardTeleport },
+        { id: "drift", label: "变速漂移", apply: startBoardDrift },
+        { id: "colors", label: "随机彩色", apply: applyRandomNumberColors },
+        { id: "center", label: "中心点击", apply: enableCenterOnlyClicks }
+      ];
+      const first = options[Math.floor(Math.random() * options.length)];
+      const remaining = options.filter((option) => (
+        option.id !== first.id
+        && !(
+          ["teleport", "drift"].includes(first.id)
+          && ["teleport", "drift"].includes(option.id)
+        )
+      ));
+      const second = remaining[Math.floor(Math.random() * remaining.length)];
+      [first, second].forEach((option) => option.apply());
+      activeChallengeLabels = [first.label, second.label];
+      showChallengeToast(activeChallengeLabels);
+      playConfirmSound();
+    }
+
+    function isCenterClick(cell, event) {
+      if (!centerOnlyActive) return true;
+      const rect = cell.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const hitSize = 44;
+      return Math.abs(event.clientX - centerX) <= hitSize / 2
+        && Math.abs(event.clientY - centerY) <= hitSize / 2;
     }
 
     function tick() {
@@ -1906,6 +2896,7 @@
       const nextCell = document.querySelector(`.cell[data-number="${nextNumber}"]`);
       if (!nextCell || nextCell.classList.contains("done")) return;
       usedHint = true;
+      resetRhythmCombo();
       nextCell.classList.add("next", "hint-flash");
     }
 
@@ -2330,6 +3321,7 @@
       timeLabel.textContent = "总共用时";
       historyHighEl.innerHTML = rankEvent && rankEvent.countedGames <= 4 ? `<span class="empty-value">暂无</span>` : historyHighHtml();
       bestTimeEl.innerHTML = bestMs ? formatSecondsLabel(bestMs) : `<span class="empty-value">暂无</span>`;
+      renderPerformanceSummary();
       splitTable.hidden = false;
       splitRows.innerHTML = "";
 
@@ -2353,9 +3345,15 @@
 
       clearTimeout(rankOverlayTimer);
       if (rankEvent?.placementCompleted) {
-        rankOverlayTimer = window.setTimeout(() => showRankOverlay("placement", rank), 520);
+        rankOverlayTimer = window.setTimeout(
+          () => showRankOverlay("placement", rank),
+          animationsEnabled ? 2350 : 320
+        );
       } else if (rankEvent?.promoted) {
-        rankOverlayTimer = window.setTimeout(() => showRankOverlay("promotion", rank), 520);
+        rankOverlayTimer = window.setTimeout(
+          () => showRankOverlay("promotion", rank),
+          animationsEnabled ? 2350 : 320
+        );
       }
     }
 
@@ -3250,17 +4248,70 @@
     function finishGame() {
       stopTimer();
       clearHint();
-      document.querySelectorAll(".cell").forEach((cell) => {
+      const shouldShowMotionResult = boardMotionMode === "teleport" || boardMotionMode === "drift";
+      stopBoardMotion(false);
+      if (shouldShowMotionResult) {
+        setBoardOffset(0, 0, false);
+        trainer.classList.remove("controls-hidden");
+      }
+      document.querySelectorAll(".cell").forEach((cell, index) => {
         cell.classList.remove("done", "miss", "next", "hint-flash", "pressing");
+        const row = Math.floor(index / 5);
+        const column = index % 5;
+        const waveDelay = Math.round(Math.hypot(row - 2, column - 2) * 46);
+        cell.style.setProperty("--finish-delay", `${waveDelay}ms`);
       });
       introPressedCell = null;
       introPressedByKey = false;
       introReleaseCommit = false;
       board.classList.add("finished");
+      renderComboHud();
       spawnCompletionFallParticles();
       timeEl.textContent = formatSecondsLabel(elapsed);
       setTimeout(playFinishSound, 180);
       renderResults();
+      beginFinishTransition();
+    }
+
+    function clearFinishTransition(showBoard = true) {
+      clearTimeout(finishFoldTimer);
+      clearTimeout(finishSettleTimer);
+      finishFoldTimer = 0;
+      finishSettleTimer = 0;
+      boardShell.classList.remove("finish-celebration", "finish-folding");
+      resultPanel.classList.remove("result-arriving");
+      if (showBoard) {
+        boardShell.hidden = false;
+      }
+    }
+
+    function revealFinishedResults() {
+      boardShell.hidden = true;
+      boardShell.classList.remove("finish-celebration", "finish-folding");
+      resultPanel.classList.remove("result-arriving");
+      const targetTop = window.scrollY + resultPanel.getBoundingClientRect().top - 16;
+      void resultPanel.offsetWidth;
+      resultPanel.classList.add("result-arriving");
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: animationsEnabled ? "smooth" : "auto",
+        });
+      });
+    }
+
+    function beginFinishTransition() {
+      clearFinishTransition(true);
+      if (!animationsEnabled) {
+        revealFinishedResults();
+        return;
+      }
+      boardShell.classList.add("finish-celebration");
+      finishFoldTimer = window.setTimeout(() => {
+        boardShell.classList.remove("finish-celebration");
+        boardShell.classList.add("finish-folding");
+      }, 1300);
+      finishSettleTimer = window.setTimeout(revealFinishedResults, 1920);
     }
 
     function spawnCompletionFallParticles() {
@@ -3288,7 +4339,7 @@
           const spin = emitter.side * (360 + Math.random() * 720) + (Math.random() - 0.5) * 260;
           const alpha = currentMode === "normal" ? 0.92 : 0.86;
           const color = palette[Math.floor(Math.random() * palette.length)];
-          const duration = 1900 + Math.random() * 940;
+          const duration = 1260 + Math.random() * 560;
           const delay = index * 7 + Math.random() * 110;
           const phase = Math.random() * Math.PI * 2;
           const flutter = boardRect.width * (0.035 + Math.random() * 0.085);
@@ -3298,6 +4349,10 @@
           particle.style.setProperty("--size", `${size}px`);
           particle.style.setProperty("--glow", `${size * 0.7}px`);
           particle.style.setProperty("--color", `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`);
+          if (currentMode !== "normal") {
+            particle.style.setProperty("--shadow-color", "rgba(255, 255, 255, 0.72)");
+            particle.style.border = "1px solid rgba(255, 255, 255, 0.72)";
+          }
           particleLayer.append(particle);
           const times = [0, 0.1, 0.22, 0.36, 0.52, 0.68, 0.84, 1];
           const frames = times.map((time) => {
@@ -3349,6 +4404,93 @@
         particle.style.setProperty("--color", `${particleBase}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`);
         particle.addEventListener("animationend", () => particle.remove(), { once: true });
         particleLayer.append(particle);
+      }
+    }
+
+    function burstIntroFragments(cell) {
+      if (!particleLayer || !animationsEnabled) return;
+      const cellRect = cell.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const centerX = cellRect.left - boardRect.left + cellRect.width / 2;
+      const centerY = cellRect.top - boardRect.top + cellRect.height / 2;
+      const fragmentCount = Math.max(16, Math.round(cellRect.width / 6));
+
+      for (let index = 0; index < fragmentCount; index += 1) {
+        const fragment = document.createElement("span");
+        const width = Math.max(7, cellRect.width * (0.065 + Math.random() * 0.06));
+        const height = Math.max(5, width * (0.52 + Math.random() * 0.72));
+        const startX = centerX - width / 2 + (Math.random() - 0.5) * cellRect.width * 0.12;
+        const startY = centerY - height / 2 + (Math.random() - 0.5) * cellRect.height * 0.12;
+        const floorY = Math.max(0, boardRect.height - height - startY - 1);
+        const durationSeconds = 1.15 + Math.random() * 0.55;
+        const duration = durationSeconds * 1000;
+        const steps = 32;
+        const dt = durationSeconds / steps;
+        let x = 0;
+        let y = 0;
+        let vx = (Math.random() - 0.5) * cellRect.width * 2.15;
+        let vy = -cellRect.height * (0.7 + Math.random() * 1.35);
+        const gravity = boardRect.height * (2.5 + Math.random() * 0.9);
+        const restitution = 0.22 + Math.random() * 0.16;
+        const spinDirection = Math.random() < 0.5 ? -1 : 1;
+        let rotation = (Math.random() - 0.5) * 20;
+        let angularVelocity = spinDirection * (190 + Math.random() * 390);
+        let bounceCount = 0;
+        const frames = [];
+
+        for (let step = 0; step <= steps; step += 1) {
+          const progress = step / steps;
+          if (step > 0) {
+            vy += gravity * dt;
+            x += vx * dt;
+            y += vy * dt;
+            rotation += angularVelocity * dt;
+
+            if (y >= floorY) {
+              y = floorY;
+              if (Math.abs(vy) > boardRect.height * 0.12 && bounceCount < 3) {
+                vy = -Math.abs(vy) * restitution;
+                vx *= 0.72;
+                angularVelocity *= 0.68;
+                bounceCount += 1;
+              } else {
+                vy = 0;
+                vx *= 0.58;
+                angularVelocity *= 0.54;
+              }
+            }
+
+            const minX = -startX;
+            const maxX = boardRect.width - width - startX;
+            if (x < minX || x > maxX) {
+              x = Math.max(minX, Math.min(maxX, x));
+              vx *= -0.36;
+            }
+          }
+
+          const fadeStart = 0.8 + (index % 4) * 0.025;
+          const opacity = progress < fadeStart
+            ? 1
+            : Math.max(0, 1 - (progress - fadeStart) / (1 - fadeStart));
+          frames.push({
+            opacity,
+            transform: `translate3d(${x}px, ${y}px, 0) rotate(${rotation}deg) scale(${1 - progress * 0.16})`
+          });
+        }
+
+        fragment.className = "intro-fragment";
+        fragment.style.setProperty("--x", `${startX}px`);
+        fragment.style.setProperty("--y", `${startY}px`);
+        fragment.style.setProperty("--fragment-width", `${width}px`);
+        fragment.style.setProperty("--fragment-height", `${height}px`);
+        particleLayer.append(fragment);
+        const animation = fragment.animate(frames, {
+          duration,
+          delay: Math.random() * 40,
+          easing: "linear",
+          fill: "forwards"
+        });
+        animation.addEventListener("finish", () => fragment.remove(), { once: true });
       }
     }
 
@@ -3414,6 +4556,7 @@
 
       if (value !== nextNumber) {
         errorCount += 1;
+        resetRhythmCombo();
         splitTimes.push({ number: value, ms: elapsed - lastSplitMs, wrong: true });
         updateProgressPanel();
         cell.blur();
@@ -3431,12 +4574,17 @@
       clearHint();
 
       const nowMs = elapsed;
+      registerRhythmHit(nowMs);
       splitTimes.push({ number: value, ms: nowMs - lastSplitMs });
       lastSplitMs = nowMs;
       cell.classList.add("done");
       cell.blur();
       lastCorrectCell = cell;
-      burstParticles(cell);
+      if (currentMode === "intro") {
+        burstIntroFragments(cell);
+      } else {
+        burstParticles(cell);
+      }
       if (currentMode === "intro") {
         cell.classList.add("vanished");
       } else {
@@ -3463,12 +4611,33 @@
     function handleCellMouseDown(event) {
       if (!shortcutMatchesMouse(cellClickShortcut, event)) return;
       event.preventDefault();
-      beginIntroPress(event.currentTarget);
-      if (currentMode === "intro") {
-        commitIntroCell(event.currentTarget, { keepPressing: true });
+      const cell = event.currentTarget;
+      if (
+        currentMode === "intro"
+        && cell.classList.contains("vanished")
+        && !board.classList.contains("finished")
+      ) {
+        resetRhythmCombo();
+        playWrongSound();
+        cell.classList.remove("combo-break");
+        void cell.offsetWidth;
+        cell.classList.add("combo-break");
+        cell.addEventListener("animationend", () => {
+          cell.classList.remove("combo-break");
+        }, { once: true });
+        cell.blur();
         return;
       }
-      activateCell(event.currentTarget);
+      if (!isCenterClick(cell, event)) {
+        cell.blur();
+        return;
+      }
+      beginIntroPress(cell);
+      if (currentMode === "intro") {
+        commitIntroCell(cell, { keepPressing: true });
+        return;
+      }
+      activateCell(cell);
     }
 
     function buildBoard() {
@@ -3484,17 +4653,23 @@
       numbers.forEach((number, index) => {
         const cell = document.createElement("button");
         const label = document.createElement("span");
+        const hitMarker = document.createElement("span");
         const bg = currentMode === "normal" ? palette[index] : "#ffffff";
         const textColor = currentMode === "normal" ? readableTextColor(bg) : "#111111";
         cell.className = "cell";
         cell.type = "button";
         cell.dataset.number = number;
+        cell.dataset.textColor = textColor;
         cell.style.setProperty("--cell-bg", bg);
         cell.style.backgroundColor = bg;
         cell.style.color = textColor;
         cell.style.setProperty("--hover-ring", currentMode === "normal" ? hoverRingColor(bg) : "rgb(40, 40, 40)");
+        cell.style.setProperty("--center-hit-color", complementHex(bg));
+        hitMarker.className = "center-hit-marker";
+        hitMarker.setAttribute("aria-hidden", "true");
         label.className = "cell-number";
         label.textContent = number;
+        cell.append(hitMarker);
         cell.append(label);
         cell.setAttribute("aria-label", `数字 ${number}`);
         currentBoardCells.push({ number, bg, textColor });
@@ -3524,6 +4699,9 @@
         board.append(cell);
       });
 
+      if (randomNumberColorsActive) {
+        applyRandomNumberColors();
+      }
       clearHint();
     }
 
@@ -3531,6 +4709,9 @@
       if (withSound) {
         playRestartSound();
       }
+      const motionToResume = boardMotionMode;
+      stopBoardMotion(false);
+      clearFinishTransition(true);
       shareInProgress = false;
       shareResultBtn.disabled = false;
       peekBtn.disabled = false;
@@ -3543,6 +4724,9 @@
       splitTimes = [];
       errorCount = 0;
       usedHint = false;
+      rhythmCombo = 0;
+      maxRhythmCombo = 0;
+      lastRhythmHitMs = 0;
       lastResultRank = null;
       lastCorrectCell = null;
       introPressedCell = null;
@@ -3557,11 +4741,18 @@
       resultPanel.hidden = false;
       splitTable.hidden = true;
       splitRows.innerHTML = "";
+      hidePerformanceSummary();
+      renderComboHud();
       shareResultBtn.hidden = true;
       renderBottomActions(false);
       buildBoard();
       updateProgressPanel();
       startTimer();
+      if (motionToResume === "teleport") {
+        startBoardTeleport();
+      } else if (motionToResume === "drift") {
+        startBoardDrift();
+      }
     }
 
     function setBoardSize(value) {
@@ -3575,6 +4766,9 @@
       const boardWidth = board.getBoundingClientRect().width || Math.min(Number(sizeRange.value), trainer.clientWidth);
       const cellSize = Math.max(44, boardWidth / 5);
       document.documentElement.style.setProperty("--cell-font", `${cellSize / 2}px`);
+      if (comboHud.classList.contains("show")) {
+        requestAnimationFrame(positionComboHud);
+      }
     }
 
     function setVolume(value) {
@@ -3622,7 +4816,12 @@
       if (isComplete) {
         peekBtn.removeAttribute("aria-keyshortcuts");
       } else {
-        peekBtn.setAttribute("aria-keyshortcuts", "Shift");
+        const hintShortcut = shortcutAriaKey(shortcuts.hint);
+        if (hintShortcut) {
+          peekBtn.setAttribute("aria-keyshortcuts", hintShortcut);
+        } else {
+          peekBtn.removeAttribute("aria-keyshortcuts");
+        }
       }
       const visibleCount = [!restartBtn.hidden, !peekBtn.hidden].filter(Boolean).length;
       restartBtn.parentElement.hidden = visibleCount === 0;
@@ -3655,6 +4854,7 @@
         localStorage.removeItem(`${archiveBestKeyPrefix}-${slot}-${mode}`);
         localStorage.removeItem(`${rankHistoryKeyPrefix}-${slot}-${mode}`);
         localStorage.removeItem(`${rankHighKeyPrefix}-${slot}-${mode}`);
+        localStorage.removeItem(`${trainingProfileKeyPrefix}-${slot}-${mode}`);
         if (slot === 1) {
           localStorage.removeItem(`${bestKeyPrefix}-${mode}`);
         }
@@ -3881,7 +5081,13 @@
     window.addEventListener("resize", () => {
       updateBoardRenderSize();
       renderBottomActions(board.classList.contains("finished"));
+      positionComboHud();
     });
+    window.addEventListener("scroll", () => {
+      if (comboHud.classList.contains("show")) {
+        positionComboHud();
+      }
+    }, { passive: true });
     window.addEventListener("wheel", preventBackgroundScroll, { passive: false });
     window.addEventListener("touchmove", preventBackgroundScroll, { passive: false });
     shortcutButtons.forEach((button) => {
@@ -3988,6 +5194,89 @@
       }
 
       if (!settingsPanel.hidden || !infoPanel.hidden || isInput) return;
+
+      const hasSystemModifier = event.ctrlKey || event.metaKey || event.altKey;
+      if (!hasSystemModifier) {
+        if (event.code === "KeyS") {
+          event.preventDefault();
+          resetBoardTrainingEffects();
+          return;
+        }
+
+        if (event.code === "ArrowUp") {
+          event.preventDefault();
+          clearChallengeTracking();
+          moveBoardBy(0, -1);
+          return;
+        }
+
+        if (event.code === "ArrowDown") {
+          event.preventDefault();
+          clearChallengeTracking();
+          moveBoardBy(0, 1);
+          return;
+        }
+
+        if (event.code === "ArrowLeft") {
+          event.preventDefault();
+          clearChallengeTracking();
+          moveBoardBy(-1, 0);
+          return;
+        }
+
+        if (event.code === "ArrowRight") {
+          event.preventDefault();
+          clearChallengeTracking();
+          moveBoardBy(1, 0);
+          return;
+        }
+
+        if (event.code === "KeyD") {
+          event.preventDefault();
+          stepMode(-1);
+          return;
+        }
+
+        if (event.code === "KeyF") {
+          event.preventDefault();
+          stepMode(1);
+          return;
+        }
+
+        if (event.code === "KeyQ") {
+          event.preventDefault();
+          clearChallengeTracking();
+          startBoardTeleport();
+          return;
+        }
+
+        if (event.code === "KeyW") {
+          event.preventDefault();
+          clearChallengeTracking();
+          startBoardDrift();
+          return;
+        }
+
+        if (event.code === "KeyE") {
+          event.preventDefault();
+          clearChallengeTracking();
+          applyRandomNumberColors();
+          return;
+        }
+
+        if (event.code === "KeyR") {
+          event.preventDefault();
+          clearChallengeTracking();
+          enableCenterOnlyClicks();
+          return;
+        }
+
+        if (event.code === "KeyT") {
+          event.preventDefault();
+          startRandomChallenge();
+          return;
+        }
+      }
 
       if (shortcutMatchesKey(shortcuts.refresh, event)) {
         event.preventDefault();
